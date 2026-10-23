@@ -1,0 +1,2571 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Línea parada EF-07</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Concepto: panel de control de planta. Cabecera fija con cronómetro de paro y puntos; una estación por pantalla. */
+:root{
+  --bg:#eceff1; --panel:#ffffff; --panel2:#e2e7ea; --fg:#171c20; --muted:#55616a; --line:#c5cdd3;
+  --accent:#f2b705; --on-accent:#171c20; --alert:#c93a3a; --ok:#1f8a5b; --info:#2a6f9e;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101417; --panel:#1a2024; --panel2:#242c31; --fg:#e8edf0; --muted:#9aa8b1; --line:#344047;
+  --accent:#f2b705; --on-accent:#171c20; --alert:#ef6b6b; --ok:#4cc48e; --info:#6cb4e4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101417; --panel:#1a2024; --panel2:#242c31; --fg:#e8edf0; --muted:#9aa8b1; --line:#344047;
+  --accent:#f2b705; --on-accent:#171c20; --alert:#ef6b6b; --ok:#4cc48e; --info:#6cb4e4; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:860px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:10px 0;border-bottom:2px solid var(--accent)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.hrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.brand{font:700 22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.brand small{display:block;font:500 11px/1.4 var(--mono);letter-spacing:.08em;color:var(--muted);margin-top:3px}
+.hud{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--panel);border:1px solid var(--line);padding:4px 10px;font:500 13px var(--mono);font-variant-numeric:tabular-nums;display:flex;gap:6px;align-items:baseline}
+.chip b{font:700 20px/1 var(--display);letter-spacing:.03em}
+.chip.clock b{color:var(--alert)}
+.chip.run b{color:var(--ok)}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;min-height:26px}
+.badge{font:500 12px var(--mono);background:var(--accent);color:var(--on-accent);padding:3px 8px;animation:pop .35s ease}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+.steps{display:flex;gap:4px;margin-top:8px}
+.steps i{flex:1;height:5px;background:var(--panel2)}
+.steps i.on{background:var(--accent)}.steps i.done{background:var(--ok)}
+main{padding-top:20px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1,h2{font:700 clamp(30px,6vw,44px)/1.02 var(--display);letter-spacing:.02em;text-transform:uppercase;margin:6px 0 12px;text-wrap:balance}
+h3{font:700 20px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}
+p{margin:0 0 12px;max-width:65ch}
+.card{background:var(--panel);border:1px solid var(--line);padding:16px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.grid>*{min-width:0}
+button{font:600 15px var(--body);cursor:pointer;border:1px solid var(--fg);background:transparent;color:var(--fg);padding:10px 14px;min-height:44px}
+button:hover:not(:disabled){background:var(--panel2)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+button.primary:hover:not(:disabled){filter:brightness(1.06);background:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.link{border:none;padding:6px 0;min-height:0;text-decoration:underline;color:var(--muted);font-weight:500}
+.role{text-align:left;padding:16px;display:block;width:100%;background:var(--panel)}
+.role h3{margin-bottom:4px}
+.role ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+.tool{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.tool .read{font:400 14px/1.5 var(--mono);background:var(--panel2);padding:8px 10px;width:100%;border-left:4px solid var(--info)}
+.tool .read.bad{border-left-color:var(--alert)}
+.tool .read.good{border-left-color:var(--ok)}
+.tool.locked{opacity:.9;border-style:dashed}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);background:var(--panel);margin:8px 0;cursor:pointer}
+.opt input{margin-top:5px;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.opt.picked{border-color:var(--fg)}
+.opt.wrong{border-color:var(--alert)}
+.opt.right{border-color:var(--ok)}
+.seq{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.seq button{text-align:left;font-weight:500}
+.seq button.used{background:var(--ok);border-color:var(--ok);color:#fff;opacity:1}
+.order{font:500 13px var(--mono);color:var(--muted);margin:6px 0}
+.fb{padding:10px 12px;border-left:4px solid var(--info);background:var(--panel2);margin:10px 0;font-size:15px}
+.fb.bad{border-color:var(--alert)}.fb.good{border-color:var(--ok)}.fb.warn{border-color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.big{font:700 clamp(56px,14vw,96px)/1 var(--display);color:var(--accent)}
+.sheet{width:100%;min-height:120px;font:13px/1.5 var(--mono);background:var(--panel2);color:var(--fg);border:1px solid var(--line);padding:10px}
+.tbl{overflow-x:auto}
+.fig{margin:0 0 16px;background:var(--panel);border:1px solid var(--line);padding:12px}
+.fig{overflow-x:auto}
+.fig svg{display:block;width:100%;min-width:600px;height:auto}
+.fig svg[width]{min-width:0}
+.fig figcaption{font-size:13px;color:var(--muted);margin:6px 0 8px}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:4px 16px;margin:0;padding:0;list-style:none;font-size:14px}
+.legend li{display:flex;gap:8px;align-items:baseline}
+.legend b{flex:none;width:20px;height:20px;background:var(--accent);color:var(--on-accent);font:700 12px/20px var(--mono);text-align:center;border-radius:50%}
+svg .part{fill:var(--panel2);stroke:var(--muted);stroke-width:1.5}
+svg .part.hl{stroke:var(--accent);stroke-width:4}
+svg .lbl{fill:var(--fg);font:600 12px var(--body)}
+svg .lbl.s{font-size:10px;fill:var(--muted);font-weight:400}
+svg .link{stroke:var(--muted);stroke-width:12;stroke-linecap:round;fill:none}
+svg .shaft{stroke:var(--muted);stroke-width:5}
+svg .rail{fill:var(--muted)}
+svg .floor{stroke:var(--line);stroke-width:2;stroke-dasharray:6 4}
+svg .mark{fill:var(--accent)}
+svg .mt{fill:var(--on-accent);font:700 12px var(--mono);text-anchor:middle}
+svg .wire{stroke:var(--info);stroke-width:2;fill:none}
+svg .oil{fill:var(--alert)}
+svg .ax{stroke:var(--line);stroke-width:1}
+svg .tick{fill:var(--muted);font:11px var(--mono)}
+svg .sig{fill:none;stroke:var(--fg);stroke-width:1.4}
+svg .cB{stroke:var(--info)}svg .cI{stroke:var(--alert)}svg .cS{stroke:var(--ok)}svg .cF{stroke:var(--muted)}svg .cR{stroke:var(--accent)}
+svg .cur{stroke:var(--fg);stroke-width:1;stroke-dasharray:2 3}
+.ds{font:13px/1.6 var(--mono)}
+.ds dt{color:var(--muted);float:left;clear:left;width:15em}.ds dd{margin:0 0 0 15em}
+.tgl{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.tgl button{min-height:38px;font-size:14px}
+.tgl button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.rd{font:500 14px var(--mono);margin:6px 0}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.sim{font:12px var(--mono);color:var(--muted)}
+.nb{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 12px/22px var(--mono);text-align:center;margin-right:8px;vertical-align:2px;letter-spacing:0}
+.pc{font-size:14px;margin:8px 0 0;padding-left:18px}.pc li{margin:2px 0}.pro{color:var(--ok)}.con{color:var(--alert)}
+header.top .badges{align-items:center}.me{display:flex;align-items:center;gap:8px;font:600 13px var(--mono)}
+.avgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:10px 0}
+.avp{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;background:var(--panel);border:2px solid var(--line);color:var(--fg);font:500 12px var(--mono);cursor:pointer}
+.avp[aria-pressed=true]{border-color:var(--accent);background:var(--panel2)}
+input.nick{width:100%;box-sizing:border-box;padding:12px;font:600 18px var(--mono);background:var(--panel);color:var(--fg);border:2px solid var(--line)}
+input.nick:focus{outline:3px solid var(--accent);outline-offset:1px}
+.vit{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0 16px}
+.md{display:flex;gap:8px;align-items:center;padding:8px;background:var(--panel);border:1px solid var(--line);font-size:13px}
+.md.off{opacity:.45}.md svg{flex:none}.md b{display:block;font-size:13px}
+.rk td:first-child,.rk th:first-child{width:34px}.rk tr.you td{background:var(--panel2);font-weight:700}
+.hero{display:flex;gap:14px;align-items:center;margin:8px 0 12px}
+@media (prefers-reduced-motion:reduce){.badge{animation:none}}
+@media (max-width:640px){
+ header.top .badges{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+ header.top .badges .badge,header.top .badges .me{flex:none;white-space:nowrap}
+ #svb{padding:4px 8px;font-size:12px}
+ .brand{font-size:18px}.brand small{display:none}
+ .hrow{gap:8px}
+ .fig svg{min-width:560px}
+ .card,.fb{padding-left:12px;padding-right:12px}
+ button{min-height:40px}
+ .opt{padding:12px}
+}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="hrow">
+    <div class="brand">Línea parada<small>ESTACIÓN EF-07 · SISTEMAS MECÁNICOS</small></div>
+    <div class="hud">
+      <div class="chip clock" id="clockChip">Paro <b id="clock">00:00</b></div>
+      <div class="chip">Puntos <b id="pts">0</b></div>
+      <button id="svb" style="display:none">Guardar partida</button>
+    </div>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="badges" id="badges" aria-label="Recompensas obtenidas"></div>
+</header>
+<main id="app"></main>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var app=$('#app');
+
+/* ---------- Datos del caso ---------- */
+var TOOLS={
+ mec:{
+  nombre:'Técnico/a especialista mecánico',
+  tools:[
+   {id:'comp',n:'Comparador de reloj y galgas',r:'Holgura del casquillo guía: 0,30 mm (máximo admisible 0,06 mm). Desalineación motor–transmisión: 0,25 mm/100 mm (máximo 0,05).',bad:1},
+   {id:'ir',n:'Termómetro de infrarrojos',r:'Aceite del reductor: 96 °C (máximo 80 °C). Aspecto oscuro y olor a quemado.',bad:1},
+   {id:'vib',n:'Estetoscopio mecánico',r:'Ruido y vibración anómalos en el lado motor y en el lado transmisión. Para localizar el defecto dentro del rodamiento hace falta el análisis de vibraciones de la siguiente estación.',bad:1},
+   {id:'vis',n:'Inspección visual con linterna',r:'Retén del reductor roto, aceite en la bancada y marca de roce en la guía, compatible con un golpe previo.',bad:1}
+  ]},
+ ele:{
+  nombre:'Técnico/a especialista eléctrico',
+  tools:[
+   {id:'pinza',n:'Pinza amperimétrica',r:'Corriente del motor: 17,5 A frente a 11 A nominales. Sobrecarga sostenida.',bad:1},
+   {id:'mega',n:'Megóhmetro',r:'Aislamiento del bobinado: 150 MΩ (mínimo 10 MΩ). El bobinado está sano: no es un fallo eléctrico del motor.',good:1},
+   {id:'term',n:'Cámara termográfica',r:'Reductor a 96 °C y motor con calentamiento por sobrecarga. Bornas sin puntos calientes.',bad:1},
+   {id:'var',n:'Consola del variador de frecuencia',r:'Alarma de sobrecorriente. El histórico muestra picos de par en cada ciclo desde hace semanas.',bad:1}
+  ]}
+};
+var LOTO=[
+ 'Informar al jefe de turno y parar la instalación en posición segura',
+ 'Abrir el seccionador y cortar la energía eléctrica',
+ 'Bloquear con candado y colocar la etiqueta con tu nombre',
+ 'Disipar la energía residual y calzar el brazo robótico',
+ 'Verificar la ausencia de tensión con el medidor'
+];
+var ROOT=[
+ {t:'El motor eléctrico está dañado por un fallo de bobinado.',ok:0,fb:'El megóhmetro indica 150 MΩ: el aislamiento está sano. El motor se sobrecarga porque algo lo frena, no porque esté averiado.'},
+ {t:'La falta de aceite en el reductor es la causa de todo.',ok:0,fb:'El aceite se degradó, pero por calor, y el calor viene del sobreesfuerzo. La falta de mantenimiento agravó la avería; no la inició.'},
+ {t:'Un casquillo guía con holgura, tras un golpe leve del robot, desalinea motor y transmisión.',ok:1,fb:'Correcto. La holgura de 0,30 mm genera la desalineación y arrastra todo lo demás.'},
+ {t:'Los dos rodamientos venían defectuosos de fábrica.',ok:0,fb:'Dos rodamientos distintos no fallan a la vez por un defecto de fábrica. Se rompieron por la desalineación que soportaron.'},
+ {t:'Los dos rodamientos se destruyeron por fatiga y la solución es sustituirlos.',ok:0,pal:1,fb:'Los rodamientos están rotos, sí, pero es la consecuencia: la desalineación los sobrecargó. Cambiarlos devuelve la línea a producción, aunque la causa sigue ahí.'}
+];
+var PAL_ROOT=['Atribuir la avería a los rodamientos','Cambias los rodamientos y la línea vuelve a producir, pero la holgura del casquillo sigue desalineando el conjunto.','Corregir la holgura del casquillo y la desalineación.','3 a 6 semanas'];
+var PAL_PARTS=['No sustituir el casquillo guía','Con rodamientos, retén y aceite nuevos la línea arranca, pero la holgura de 0,30 mm sigue ahí.','Sustituir también el casquillo guía.','4 semanas'];
+var CHAIN=[
+ 'Colisión leve del robot en su rutina',
+ 'Casquillo guía con holgura',
+ 'Desalineación motor–transmisión',
+ 'Sobreesfuerzo: dos rodamientos rotos y motor a 17,5 A',
+ 'Reductor sobrecalentado, retén roto y aceite derramado',
+ 'Parada de la estación EF-07'
+];
+var PARTS=[
+ {t:'Casquillo guía nuevo',ok:1},
+ {t:'Rodamiento SKF 6205-2RS1 (lado motor)',ok:1},
+ {t:'Rodamiento SKF 7205 BECBP (lado transmisión)',ok:1},
+ {t:'Retén del reductor y aceite del fabricante',ok:1},
+ {t:'Rodamiento 6305-2RS1 en lugar del 6205',ok:0},
+ {t:'Rodamiento 6204-2RS1 en lugar del 6205',ok:0},
+ {t:'Sustituir el variador de frecuencia',ok:0},
+ {t:'Subir el ajuste de la protección de sobrecorriente',ok:0},
+ {t:'Solo rellenar aceite y rearmar',ok:0}
+];
+var PROC=[
+ 'Bloquear la instalación (LOTO)',
+ 'Desmontar motor, acoplamiento y rodamientos dañados',
+ 'Sustituir el casquillo guía',
+ 'Montar los dos rodamientos nuevos',
+ 'Alinear motor y transmisión con comparador (≤ 0,05 mm/100 mm)',
+ 'Cambiar retén, limpiar y rellenar con el aceite del fabricante',
+ 'Retirar el bloqueo y hacer la prueba en vacío'
+];
+var DEAD_ROOT={
+ 0:['Mandas el motor a rebobinar','Desmontas el motor y lo envías al taller de bobinado. Vuelve a los dos días con el bobinado como nuevo, lo montas y la sobrecorriente reaparece: el motor nunca estuvo averiado, algo lo frenaba. Has perdido tiempo y toca retroceder al análisis.'],
+ 1:['Cambias el aceite y rearmas','Rellenas con aceite nuevo y rearmas. A la media hora el reductor vuelve a calentarse y salta la alarma: el aceite se degradó por el calor, y el calor venía de otro sitio. Callejón sin salida: retrocede.'],
+ 3:['Reclamas los rodamientos al proveedor','Abres una reclamación por defecto de fábrica y esperas respuesta. La línea sigue parada y el informe del proveedor no encuentra defecto alguno. Retrocede y busca qué los hizo fallar.']
+};
+var DEAD_PARTS={
+ 4:['El 6305 no entra','El 6305-2RS1 mide 62 mm de diámetro exterior y 17 mm de ancho: no cabe en el alojamiento de 52 mm. Pierdes tiempo en el almacén y vuelves a la lista.'],
+ 5:['El 6204 baila en el eje','El 6204-2RS1 tiene un agujero de 20 mm y tu eje es de 25 mm. Vuelves al almacén con las manos vacías.'],
+ 6:['Variador nuevo, misma alarma','Montas un variador nuevo y la alarma de sobrecorriente vuelve a saltar: el variador solo hacía su trabajo, el motor está sobrecargado de verdad. Retrocede.'],
+ 7:['Subes la protección y se recalienta','Subes el ajuste de la protección y el motor aguanta, hasta que el aceite del reductor empieza a humear. Has tapado el síntoma, no la causa. Retrocede de inmediato.'],
+ 8:['Aceite limpio, mismo problema','Rellenas el aceite y rearmas. La holgura y la desalineación siguen ahí y a los pocos minutos todo vuelve a vibrar. Retrocede.']
+};
+var LUBQ=[
+ {q:'La viscosidad de la muestra es de 168 mm²/s a 40 °C y el aceite es un ISO VG 220, que admite entre 198 y 242 mm²/s. ¿Qué concluyes?',full:2,ok:0,
+  o:['Ha perdido cerca del 24 % y queda fuera del margen de ±10 % del grado: hay que sustituirlo, no solo rellenar',
+     'Ha perdido cerca del 24 %, pero con esa temperatura de trabajo es una bajada admisible: basta vigilarlo unas semanas',
+     'Ha perdido cerca del 76 %: el aceite está agotado y el reductor probablemente ya está gripado',
+     'Está dentro de lo normal para un aceite sintético tras meses de servicio: la lectura no es preocupante'],
+  fb:'(220 − 168) / 220 ≈ 24 %. Un grado ISO VG solo admite ±10 % sobre su valor central; fuera de ese margen el aceite ya no forma la película prevista.',
+  dead:{1:['Esperas unas semanas','Dejas el aceite en servicio «para vigilarlo». A los pocos días el reductor sube de temperatura otra vez y la parada se repite. Retrocede.'],
+        2:['Das el reductor por perdido','Confundes la pérdida con un 76 % (mides sobre la muestra, no sobre la referencia) y pides un reductor nuevo. El pedido tarda semanas y no hacía falta. Retrocede.'],
+        3:['Lo das por normal','Un sintético bien formulado no pierde un 24 % de viscosidad por envejecer. Archivas el informe y la avería reaparece. Retrocede.']}},
+ {q:'El análisis da 410 ppm de hierro (límite 150), agua 0,04 % (máximo 0,10 %), 96 °C y aspecto oscuro con olor a quemado. ¿Qué indica?',full:2,ok:0,
+  o:['Desgaste metálico por exceso de carga y oxidación térmica; la contaminación por agua queda descartada',
+     'Contaminación por agua y por polvo: hay que sellar mejor el reductor y cambiar el respiradero',
+     'Aceite envejecido por falta de cambios; con un cambio completo se resuelve y no hace falta buscar más',
+     'Calentamiento por falta de refrigeración del reductor; la solución es ventilación forzada y aceite nuevo'],
+  fb:'El agua está dentro de límites, así que no es contaminación. El hierro triplica el límite y el aceite está oxidado: algo carga el reductor de más y lo calienta. El aceite es consecuencia de ese esfuerzo, no su causa.',
+  dead:{1:['Sellas y cambias el respiradero','Cambias el respiradero y revisas las juntas, pero el agua nunca fue el problema. El reductor sigue calentando y el aceite nuevo se oscurece en pocas horas. Retrocede.'],
+        2:['Un cambio de aceite y a producir','Vacías, rellenas y arrancas. A la media hora el reductor vuelve a los 90 °C: el aceite viejo era el síntoma de una sobrecarga que sigue ahí. Retrocede.'],
+        3:['Instalas ventilación forzada','Montas un ventilador en el reductor y baja unos grados, pero la causa del calor sigue ahí y el hierro sigue subiendo. Retrocede.']}},
+ {q:'Al reponer, ¿con qué criterio eliges el lubricante?',full:1,ok:0,
+  o:['Mismo grado ISO VG 220 y misma base sintética que indica el fabricante, comprobando compatibilidad con el retén nuevo',
+     'Un grado superior, ISO VG 320, para compensar la pérdida de viscosidad y la temperatura alta',
+     'Mezclar la mitad de aceite nuevo con la mitad del antiguo para no vaciar el reductor del todo',
+     'Un grado inferior, ISO VG 150, para reducir el esfuerzo del motor, que va sobrecargado'],
+  fb:'El grado lo fija el fabricante para cada reductor. Subirlo o bajarlo cambia la película y el calor generado, y mezclar con aceite degradado arrastra sus partículas y su oxidación.',
+  dead:{1:['Más espeso no es mejor','El ISO VG 320 genera más fricción y más calor en un reductor diseñado para el 220: la temperatura vuelve a subir. Retrocede.'],
+        2:['Mezclar aceite nuevo con viejo','Mezclar con aceite oxidado y con 410 ppm de hierro contamina el aceite nuevo desde el primer minuto. Retrocede.'],
+        3:['Más fluido, película más fina','El ISO VG 150 forma una película más delgada de lo que el diseño prevé y el desgaste de los dientes se acelera. Retrocede.']}}
+];
+var MONTQ=[
+ {q:'Montas el rodamiento 6205-2RS1, sellado y engrasado de por vida, con ajuste con apriete en el eje. ¿Cómo lo haces?',full:2,ok:0,
+  o:['Con calentador por inducción sin pasar de 80 °C, y encajándolo con la fuerza aplicada solo sobre el aro interior',
+     'Con baño de aceite a unos 120 °C, para que dilate más, y encajándolo empujando solo el aro interior',
+     'En frío con la prensa, apoyando en ambos aros a la vez para repartir la fuerza',
+     'Con soplete, calentando de forma uniforme, y encajándolo con un tubo apoyado en el aro exterior'],
+  fb:'Al ser un rodamiento sellado y engrasado, no se calienta por encima de 80 °C. La fuerza va por el aro que lleva el apriete; si pasa por las bolas, marca las pistas.',
+  dead:{1:['La grasa no aguanta 120 °C','A 120 °C la grasa de por vida se degrada y los sellos se deforman. El rodamiento nuevo falla en pocas semanas. Retrocede.'],
+        2:['La fuerza pasa por las bolas','Empujar por ambos aros hace que parte de la fuerza pase por las bolas y marque las pistas (brinelling). El rodamiento nace dañado. Retrocede.'],
+        3:['Soplete y aro exterior','El soplete calienta de forma irregular y supera de largo los 80 °C; además, empujar por el aro exterior marca las pistas. Rodamiento perdido. Retrocede.']}},
+ {q:'Tras montar, el comparador marca 0,09 mm/100 mm de desalineación angular entre motor y reductor. El límite es 0,05 mm/100 mm. ¿Qué haces?',full:2,ok:0,
+  o:['Corriges con calzos bajo las patas del motor y vuelves a medir con los tornillos apretados',
+     'Das la medida por válida, porque queda por debajo del doble del límite',
+     'Aflojas un poco el acoplamiento para que absorba la diferencia al girar',
+     'Mueves el motor con un martillo de goma hasta que el comparador marque cero en una posición'],
+  fb:'La corrección se hace con calzos o con los tornillos de empuje, y se verifica de nuevo con el apriete final, porque al apretar la alineación puede cambiar.',
+  dead:{1:['Un margen que no existe','El límite no se duplica por comodidad: con 0,09 mm/100 mm el acoplamiento y los rodamientos vuelven a sufrir. Hay que repetir el montaje. Retrocede.'],
+        2:['El acoplamiento no es un parche','Aflojar el acoplamiento no corrige nada: sube la vibración y se desgasta antes. Retrocede.'],
+        3:['A martillazos no se alinea','Una posición con cero no garantiza la alineación en todo el giro, y los golpes dañan los rodamientos nuevos. Retrocede.']}},
+ {q:'Vas a fijar el motor a la bancada. ¿Cómo aprietas los tornillos?',full:1,ok:0,
+  o:['En cruz, en dos o tres pasadas, con llave dinamométrica al par del fabricante, y vuelves a comprobar la alineación',
+     'En cruz, con llave de impacto hasta el tope, y das por buena la alineación anterior',
+     'Primero un lado hasta el par final, para que asiente, y luego el otro',
+     'Hasta el par del fabricante, pero sin repetir la medición: apretar no modifica la alineación'],
+  fb:'Apretar en pasadas y en cruz reparte la carga, y al apretar el motor puede moverse o apoyar mal en una pata: la alineación se comprueba de nuevo.',
+  dead:{1:['Llave de impacto','El impacto no controla el par y puede deformar la bancada. La alineación se pierde. Retrocede.'],
+        2:['Un lado primero','Apretar un lado hasta el final inclina el motor sobre la bancada y descuadra la alineación. Retrocede.'],
+        3:['Sin volver a medir','Al apretar, el motor se desplaza unas centésimas y esa medida ya no vale. Retrocede.']}}
+];
+LUBQ[0].pal={1:['Dejar el aceite en servicio y vigilarlo','La línea arranca, pero un aceite fuera de grado ya no forma la película prevista y el desgaste continúa.','Sustituir el aceite y eliminar la causa de su degradación.','2 o 3 semanas']};
+LUBQ[1].pal={2:['Cambiar solo el aceite','La línea arranca, pero la sobrecarga que oxidó el aceite sigue ahí y volverá a degradarlo.','Eliminar la sobrecarga (holgura y desalineación) y después renovar el aceite.','3 o 4 semanas']};
+LUBQ[0].qa='La viscosidad de la muestra es de 168 mm²/s a 40 °C y el aceite es un ISO VG 220. ¿Qué concluyes?';
+LUBQ[1].qa='El análisis da 410 ppm de hierro, agua 0,04 %, 96 °C y aspecto oscuro con olor a quemado. ¿Qué indica?';
+MONTQ[1].qa='Tras montar, el comparador marca 0,09 mm/100 mm de desalineación angular entre motor y reductor. ¿Qué haces?';
+MONTQ[2].pal={3:['Apretar el motor sin volver a medir la alineación','La línea arranca, pero al apretar el motor pudo moverse unas centésimas y nadie lo ha comprobado.','Apretar en cruz y volver a medir la alineación con el apriete final.','1 o 2 meses']};
+var PREV=[
+ {t:'Revisar holguras y alineación tras cualquier colisión del robot',ok:1},
+ {t:'Ruta periódica de vibraciones, termografía y análisis de aceite',ok:1},
+ {t:'Recuperar el plan de mantenimiento preventivo, con hueco fijo en el calendario',ok:1},
+ {t:'Aumentar la potencia del motor para que no se pare',ok:0},
+ {t:'Esperar a la alarma para intervenir',ok:0},
+ {t:'Desactivar la alarma de sobrecorriente del variador',ok:0}
+];
+
+/* ---------- Perfil, avatar y logros ---------- */
+var AV=[{n:'Tuerca',c:'#2a6f9e',k:'#e8b894'},{n:'Piñón',c:'#c93a3a',k:'#c68863'},{n:'Biela',c:'#1f8a5b',k:'#8d5a3b'},{n:'Cojinete',c:'#8a5bd1',k:'#f1c9a5'},{n:'Eje',c:'#e08a1e',k:'#a86f4a'},{n:'Junta',c:'#4a5560',k:'#e8b894'}];
+var ACC=[
+ {b:'Bloqueo seguro',k:'casco',n:'Casco de seguridad',d:'Bloqueo LOTO completado'},
+ {b:'Ojo clínico',k:'orejeras',n:'Orejeras de inspector',d:'8 o más evidencias reunidas'},
+ {b:'Analista de vibraciones',k:'gafas',n:'Gafas de analista',d:'Vibraciones diagnosticadas'},
+ {b:'Lubricación',k:'chaleco',n:'Chaleco de lubricador',d:'Análisis de aceite resuelto'},
+ {b:'Causa raíz',k:'insignia',n:'Insignia de causa raíz',d:'Causa raíz identificada'},
+ {b:'Montaje limpio',k:'llave',n:'Llave de montaje',d:'Montaje y ajuste superados'},
+ {b:'Rapidez con seguridad',k:'rayo',n:'Rayo de rapidez',d:'Bonus de tiempo con seguridad'},
+ {b:'Plan preventivo',k:'carpeta',n:'Portapapeles preventivo',d:'Tres medidas preventivas correctas'}
+];
+var MEDC={oro:'#e0b020',plata:'#b8c2c8',bronce:'#b9773a'};
+var PROFILE={nick:'',av:0};
+try{var _p=JSON.parse(localStorage.getItem('lp_profile')||'null');if(_p&&_p.nick){PROFILE.nick=String(_p.nick).slice(0,16);PROFILE.av=Math.max(0,Math.min(5,+_p.av||0))}}catch(e){}
+function avatar(a,acc,medal,w,lbl){
+ var A=AV[a]||AV[0],has=function(k){return acc.indexOf(k)>=0},o='';
+ o+='<svg viewBox="0 0 100 112" width="'+(w||64)+'" role="img" aria-label="'+esc(lbl||('Avatar '+A.n))+'" style="flex:none">';
+ if(has('llave'))o+='<g transform="rotate(14 86 84)"><rect x="83" y="62" width="6" height="40" fill="#9aa8b1" stroke="#171c20" stroke-width="1.5"/><circle cx="86" cy="62" r="7" fill="#9aa8b1" stroke="#171c20" stroke-width="1.5"/><rect x="84" y="52" width="4" height="9" fill="var(--bg)"/></g>';
+ if(has('carpeta'))o+='<rect x="2" y="66" width="22" height="30" fill="#fff" stroke="#171c20" stroke-width="2"/><rect x="8" y="62" width="10" height="6" fill="#f2b705" stroke="#171c20" stroke-width="1.5"/><path d="M6 76h14M6 82h14M6 88h9" stroke="#55616a" stroke-width="2"/>';
+ o+='<rect x="26" y="58" width="48" height="48" rx="10" fill="'+A.c+'" stroke="#171c20" stroke-width="2"/>';
+ if(has('chaleco'))o+='<rect x="26" y="92" width="48" height="6" fill="#f2f2f2"/><rect x="26" y="78" width="48" height="4" fill="#f2f2f2" opacity=".0"/>';
+ o+='<circle cx="50" cy="38" r="19" fill="'+A.k+'" stroke="#171c20" stroke-width="2"/><circle cx="43" cy="39" r="2.4" fill="#171c20"/><circle cx="57" cy="39" r="2.4" fill="#171c20"/><path d="M44 47q6 4 12 0" stroke="#171c20" stroke-width="2" fill="none" stroke-linecap="round"/>';
+ if(has('orejeras'))o+='<path d="M31 38a19 19 0 0 1 38 0" stroke="#171c20" stroke-width="3" fill="none"/><circle cx="30" cy="40" r="6" fill="#c93a3a" stroke="#171c20" stroke-width="1.5"/><circle cx="70" cy="40" r="6" fill="#c93a3a" stroke="#171c20" stroke-width="1.5"/>';
+ if(has('gafas'))o+='<rect x="36" y="34" width="12" height="9" rx="3" fill="#6cb4e4" fill-opacity=".55" stroke="#171c20" stroke-width="2"/><rect x="52" y="34" width="12" height="9" rx="3" fill="#6cb4e4" fill-opacity=".55" stroke="#171c20" stroke-width="2"/><path d="M48 38h4" stroke="#171c20" stroke-width="2"/>';
+ if(has('casco'))o+='<path d="M30 34a20 20 0 0 1 40 0z" fill="#f2b705" stroke="#171c20" stroke-width="2"/><rect x="27" y="32" width="46" height="5" rx="2" fill="#d99a00" stroke="#171c20" stroke-width="1.5"/>';
+ if(has('rayo'))o+='<path d="M80 14l-9 17h7l-6 16 14-21h-8z" fill="#f2b705" stroke="#171c20" stroke-width="1.8" stroke-linejoin="round"/>';
+ if(has('insignia'))o+='<circle cx="36" cy="68" r="5.5" fill="#fff" stroke="#171c20" stroke-width="1.5"/><path d="M36 64.5l1.2 2.5 2.7.3-2 1.9.6 2.7-2.5-1.4-2.5 1.4.6-2.7-2-1.9 2.7-.3z" fill="#c93a3a"/>';
+ if(medal){o+='<path d="M41 58l9 16 9-16" fill="'+MEDC[medal]+'" opacity=".55"/><circle cx="50" cy="86" r="10" fill="'+MEDC[medal]+'" stroke="#171c20" stroke-width="2"/><path d="M50 80l2.2 4.6 5 .6-3.7 3.4 1 5-4.5-2.5-4.5 2.5 1-5-3.7-3.4 5-.6z" fill="#fff" fill-opacity=".85"/>'}
+ else{var ic=['<path d="M50 74l7 4v8l-7 4-7-4v-8z"','<circle cx="50" cy="82" r="8"','<path d="M50 73l9 16H41z"','<rect x="43" y="75" width="14" height="14"','<path d="M50 73l8 9-8 9-8-9z"','<rect x="42" y="74" width="16" height="4"/><rect x="42" y="82" width="16" height="4"/><rect x="42" y="90" width="16" height="4"'][a]||'';o+='<g fill="#f2b705" stroke="#171c20" stroke-width="1.5">'+ic+'/></g>'}
+ return o+'</svg>';
+}
+function accKeys(){return ACC.filter(function(x){return S.badges.indexOf(x.b)>=0}).map(function(x){return x.k})}
+function scoreMedal(p){return p>=105?'oro':p>=85?'plata':p>=55?'bronce':null}
+function specialMedals(){
+ var c=S.sc,diag=c.ev+c.vib+c.lub+c.root+c.chain;
+ return [
+  {n:'Curativo',d:'Ninguna solución paliativa',on:!Object.keys(S.pal).length},
+  {n:'Sin callejones',d:'Cero callejones sin salida',on:S.deads===0},
+  {n:'Seguridad total',d:'15/15 en seguridad',on:c.seg>=15},
+  {n:'Diagnóstico impecable',d:'38 o más de 40 en diagnóstico',on:diag>=38},
+  {n:'Contrarreloj',d:'Bonus de tiempo conseguido',on:c.bonus>0},
+  {n:'Nivel avanzado',d:'Partida completa sin ayudas',on:!!S.adv},
+  {n:'Rediagnóstico',d:'Misión 2 con 12 o más de 15',on:S.m2pts>=12},
+  {n:'Fiabilidad',d:'Misión 3 con 8 o más de 10',on:S.m3pts>=8}
+ ];
+}
+function medalIcon(on,col){return '<svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="'+(on?col:'var(--line)')+'" stroke="#171c20" stroke-width="2"/><path d="M15 7l2.4 5 5.4.7-4 3.7 1 5.4-4.8-2.7-4.8 2.7 1-5.4-4-3.7 5.4-.7z" fill="#fff" fill-opacity="'+(on?.9:.5)+'"/></svg>'}
+
+/* ---------- Estado ---------- */
+var S;
+function fresh(){S={step:PROFILE.nick?'intro':'profile',deads:0,saved:false,role:null,start:0,t:0,timer:null,sec:0,pts:0,badges:[],
+ seen:{},help:{},ev:0,rootTries:0,rootOk:false,chainErr:0,chainPos:0,
+ loto:[],lotoErr:0,lotoSkipped:false,sc:{seg:0,ev:0,vib:0,lub:0,root:0,chain:0,parts:0,proc:0,mon:0,prev:0,bonus:0,pen:0,xt:0,rec:0},
+ done:{e2:false,vib:false,lub:false},lq:[false,false,false],lw:[0,0,0],mq:[false,false,false],mw:[0,0,0],pal:{},adv:false,deadLog:[],prevSel:[],rq:[false,false,false],rw:[0,0,0],m2note:'',m2pts:0,m2dead:0,m2Q:null,m2cs:[],m3sel:[],m3note:'',m3own:'',m3pts:0,m3done:false,aq:[false,false,false],aw:[0,0,0],cq:[false,false,false],cw:[0,0,0],dead:null,lotoRun:0,chainRun:0,procRun:0,
+ partsWrong:{},partsOk:false,vq:[false,false,false],vw:[0,0,0],ov:{},cur:150,procPos:0,procErr:0,clockStopped:false,prevDone:false};}
+fresh();
+
+function fmt(s){var m=Math.floor(s/60),x=s%60;return (m<10?'0':'')+m+':'+(x<10?'0':'')+x}
+function total(){var c=S.sc;return Math.min(120,Math.max(0,c.seg+c.ev+c.vib+c.lub+c.root+c.chain+c.parts+c.proc+c.mon+c.prev+c.bonus-c.pen+c.xt+c.rec))}
+function hud(){var sv=$('#svb');if(sv)sv.style.display=(S.role&&['prof','tprop','pc','qr','profile','intro'].indexOf(S.step)<0)?'':'none';$('#pts').textContent=total();$('#clock').textContent=fmt(S.sec);
+ $('#badges').innerHTML=(PROFILE.nick?'<span class="me">'+avatar(PROFILE.av,accKeys(),null,38)+esc(PROFILE.nick)+'</span>':'')+S.badges.map(function(b){return '<span class="badge">'+b+'</span>'}).join('');
+ var segmap={qr:'role',pc:'role',tprop:'role',m2:'e5x',m3:'e5x',ali:'diag',cor:'diag',prof:'role',profile:'role',intro:'role',map:'diag',loc:'diag',e2:'diag',vib:'diag',lub:'diag',final:'e5x'},order=['role','e1','diag','e3','e4','mont','e5'],idx=order.indexOf(segmap[S.step]||S.step);
+ $('#steps').innerHTML=order.map(function(k,i){return '<i class="'+(i<idx||S.step==='final'?'done':i===idx?'on':'')+'"></i>'}).join('');
+ var chip=$('#clockChip');
+ if(S.clockStopped){chip.className='chip run';chip.firstChild.nodeValue='Línea en marcha '}else{chip.className='chip clock';chip.firstChild.nodeValue='Paro '}
+}
+function tick(){S.sec=Math.floor((Date.now()-S.start)/1000)+S.t;hud()}
+function startClock(){S.start=Date.now();S.timer=setInterval(function(){if(!S.clockStopped)tick()},1000)}
+function addTime(sec){S.t+=sec;tick()}
+function badge(b){if(S.badges.indexOf(b)<0)S.badges.push(b)}
+function go(step){S.step=step;render();window.scrollTo(0,0)}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+
+/* ---------- Esquema de la instalación ---------- */
+function schem(hl){
+ hl=hl==='all'?[1,2,3,4,5,6]:(hl||[]);
+ function H(n){return hl.indexOf(n)>-1?' hl':''}
+ function M(n,x,y){return '<circle class="mark" cx="'+x+'" cy="'+y+'" r="11"/><text class="mt" x="'+x+'" y="'+(y+4)+'">'+n+'</text>'}
+ var s='<svg viewBox="0 0 720 300" role="img" aria-label="Esquema simplificado de la estación EF-07: variador, motor, acoplamiento, reductor, husillo, carro con guía y brazo robótico con utillaje">'+
+ '<line class="floor" x1="20" y1="284" x2="700" y2="284"/>'+
+ '<rect class="part'+H(5)+'" x="50" y="50" width="86" height="84"/><text class="lbl" x="93" y="88" text-anchor="middle">Variador</text><text class="lbl s" x="93" y="104" text-anchor="middle">de frecuencia</text>'+
+ '<path class="wire" d="M93 134 V172"/>'+
+ '<rect class="part" x="50" y="172" width="100" height="74"/><text class="lbl" x="92" y="214" text-anchor="middle">Motor</text>'+
+ '<rect class="part'+H(2)+'" x="136" y="186" width="14" height="46"/>'+
+ '<rect class="part" x="150" y="200" width="16" height="22"/>'+
+ '<rect class="part'+H(4)+'" x="166" y="184" width="84" height="54"/><text class="lbl" x="208" y="208" text-anchor="middle">Reductor</text><text class="lbl s" x="208" y="224" text-anchor="middle">con aceite</text>'+
+ '<path class="oil" d="M208 242 q-6 12 0 17 q6 -5 0 -17z"/>'+
+ '<line class="shaft" x1="250" y1="211" x2="640" y2="211"/>'+
+ '<rect class="part'+H(3)+'" x="250" y="196" width="14" height="30"/>'+
+ '<rect class="rail" x="262" y="258" width="400" height="12"/>'+
+ '<rect class="part" x="380" y="196" width="112" height="62"/><text class="lbl" x="436" y="226" text-anchor="middle">Carro</text>'+
+ '<rect class="part'+H(1)+'" x="394" y="244" width="30" height="14"/>'+
+ '<rect class="part" x="406" y="170" width="60" height="26"/>'+
+ '<path class="link" d="M436 170 L504 96"/><circle class="part" cx="504" cy="96" r="10"/>'+
+ '<path class="link" d="M504 96 L596 124"/>'+
+ '<rect class="part'+H(6)+'" x="584" y="124" width="76" height="40"/><text class="lbl" x="622" y="148" text-anchor="middle">Utillaje</text>'+
+ '<text class="lbl s" x="520" y="72">Brazo robótico</text>'+
+ M(5,150,60)+M(6,672,128)+M(2,143,250)+M(3,257,184)+M(4,208,272)+M(1,409,284+0);
+ s=s.replace('cy="284"','cy="274"').replace('y="288"','y="278"');
+ s+='</svg>';
+ var L=['Casquillo guía del carro','Rodamiento del lado motor','Rodamiento del lado transmisión','Reductor con aceite y retén','Variador de frecuencia','Utillaje y brazo robótico'];
+ return '<figure class="fig">'+s+'<figcaption>Esquema simplificado, sin escala. El motor mueve, a través del acoplamiento, el reductor y el husillo, el carro que lleva el brazo robótico con su utillaje.</figcaption><ol class="legend">'+L.map(function(t,i){return '<li><b>'+(i+1)+'</b>'+t+'</li>'}).join('')+'</ol></figure>';
+}
+
+/* ---------- Fichas técnicas de rodamientos ---------- */
+function DS(){
+ return '<div class="grid"><div class="card"><h3>SKF 6205-2RS1</h3><p class="sim" style="margin:0 0 6px">Lado motor · rígido de bolas, sellado</p><dl class="ds" style="margin:0"><dt>Medidas d × D × B</dt><dd>25 × 52 × 15 mm</dd><dt>Carga dinámica C</dt><dd>14,8 kN</dd><dt>Carga estática C0</dt><dd>7,8 kN</dd><dt>Velocidad límite</dt><dd>18 000 rpm</dd><dt>Ángulo de contacto</dt><dd>0°</dd></dl></div>'+
+ '<div class="card"><h3>SKF 7205 BECBP</h3><p class="sim" style="margin:0 0 6px">Lado transmisión · contacto angular</p><dl class="ds" style="margin:0"><dt>Medidas d × D × B</dt><dd>25 × 52 × 15 mm</dd><dt>Carga dinámica C</dt><dd>15,6 kN</dd><dt>Carga estática C0</dt><dd>10 kN</dd><dt>Velocidad límite</dt><dd>17 000 rpm</dd><dt>Ángulo de contacto</dt><dd>40°, jaula no metálica</dd></dl></div></div><p class="sim">Datos del catálogo del fabricante. El eje es de 25 mm y el alojamiento de 52 mm: comprueba las medidas antes de elegir.</p>';
+}
+
+/* ---------- Análisis de vibraciones (datos didácticos simulados) ---------- */
+var FR=24.17, MUL={BPFO:3.585,BPFI:5.415,BSF2:4.714,FTF:0.398};
+var PK=[[24.17,.34],[48.34,.58],[72.5,.10],[86.65,1],[173.3,.52],[259.95,.26]];
+var SPEC=null;
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function spec(){if(SPEC)return SPEC;var r=rng(7),a=[];for(var f=0;f<=300;f+=0.5){var v=0.03+0.03*r();PK.forEach(function(p){v+=p[1]*Math.exp(-Math.pow((f-p[0])/0.8,2))});a.push([f,v])}SPEC=a;return a}
+function ampAt(f){var a=spec(),i=Math.max(0,Math.min(a.length-1,Math.round(f/0.5)));return a[i][1]}
+function cmb(f0,cls,name,n){var o='';for(var k=1;k<=n;k++){var f=f0*k;if(f>300)break;var x=46+f/300*640;o+='<line class="'+cls+'" x1="'+x+'" y1="26" x2="'+x+'" y2="220" stroke-width="1.5" stroke-dasharray="5 3"/>';if(k===1)o+='<text class="tick" x="'+(x+3)+'" y="'+(36+0)+'">'+name+'</text>'}return o}
+function svgSpec(){
+ var a=spec(),X=function(f){return 46+f/300*640},Y=function(v){return 220-v/1.2*190};
+ var d='M'+a.map(function(p){return X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)}).join(' L');
+ var s='<svg viewBox="0 0 700 262" role="img" aria-label="Espectro de vibración envolvente del motor entre 0 y 300 Hz">';
+ [0,0.4,0.8,1.2].forEach(function(v){s+='<line class="ax" x1="46" y1="'+Y(v)+'" x2="686" y2="'+Y(v)+'"/><text class="tick" x="40" y="'+(Y(v)+4)+'" text-anchor="end">'+v.toFixed(1)+'</text>'});
+ [0,50,100,150,200,250,300].forEach(function(f){s+='<line class="ax" x1="'+X(f)+'" y1="220" x2="'+X(f)+'" y2="224"/><text class="tick" x="'+X(f)+'" y="238" text-anchor="middle">'+f+'</text>'});
+ s+='<text class="tick" x="46" y="16">Aceleración envolvente (g)</text><text class="tick" x="686" y="256" text-anchor="end">Frecuencia (Hz)</text>';
+ s+='<path class="sig" d="'+d+'"/>';
+ var o=S.ov;
+ if(o.R)s+=cmb(FR,'cR','1×',3);
+ if(o.O)s+=cmb(MUL.BPFO*FR,'cB','BPFO',3);
+ if(o.I)s+=cmb(MUL.BPFI*FR,'cI','BPFI',2);
+ if(o.B)s+=cmb(MUL.BSF2*FR,'cS','2×BSF',2);
+ if(o.F)s+=cmb(MUL.FTF*FR,'cF','FTF',3);
+ var cx=X(S.cur);s+='<line class="cur" x1="'+cx+'" y1="26" x2="'+cx+'" y2="220"/></svg>';
+ return s;
+}
+function svgWave(){
+ var N=700,T=0.12,pts=[],r=rng(3),P=1/(MUL.BPFO*FR);
+ for(var i=0;i<N;i++){var t=i/N*T,v=0.14*Math.sin(2*Math.PI*FR*t)+0.12*Math.sin(2*Math.PI*2*FR*t)+0.05*(r()-0.5);
+  var k=Math.floor(t/P),tt=t-k*P;v+=0.95*Math.exp(-tt/0.0014)*Math.sin(2*Math.PI*1100*tt);
+  pts.push((46+i/N*640).toFixed(1)+' '+(70-v*52).toFixed(1))}
+ var s='<svg viewBox="0 0 700 150" role="img" aria-label="Señal de aceleración en el tiempo con impactos periódicos">';
+ s+='<line class="ax" x1="46" y1="70" x2="686" y2="70"/><text class="tick" x="46" y="12">Aceleración (g)</text>';
+ [0,0.03,0.06,0.09,0.12].forEach(function(t){var x=46+t/T*640;s+='<line class="ax" x1="'+x+'" y1="128" x2="'+x+'" y2="132"/><text class="tick" x="'+x+'" y="146" text-anchor="middle">'+(t*1000).toFixed(0)+'</text>'});
+ s+='<text class="tick" x="686" y="12" text-anchor="end">Tiempo (ms)</text><path class="sig" d="M'+pts.join(' L')+'"/></svg>';
+ return s;
+}
+var VQ=[
+ {q:'¿Qué parte del rodamiento está dañada?',full:4,
+  o:['Pista exterior','Pista interior','Bolas','Jaula'],ok:0,
+  fb:'Los picos coinciden con la frecuencia de paso de bolas por la pista exterior (BPFO) y sus armónicos, y no tienen bandas laterales a ±1×. Un defecto en la pista interior mostraría BPFI con bandas laterales a la velocidad de giro, porque el defecto entra y sale de la zona de carga.',
+  bad:'Superpón las frecuencias de fallo sobre el espectro y comprueba cuál coincide con los picos y con sus armónicos.'},
+ {q:'Con el motor a 1450 rpm (24,17 Hz), ¿a qué frecuencia esperas el pico principal de ese defecto?',full:3,
+  o:['86,6 Hz','130,9 Hz','113,9 Hz','9,6 Hz'],ok:0,
+  fb:'Multiplicador de la ficha por la velocidad de giro: 3,585 × 24,17 = 86,6 Hz. Los armónicos caen en 173,3 y 259,9 Hz, como muestra el espectro.',
+  bad:'Multiplica el factor del defecto que identificaste por la velocidad de giro de 24,17 Hz.'},
+ {q:'El pico elevado a 2× la velocidad de giro (48,3 Hz) apunta a…',full:3,
+  o:['Desalineación entre motor y transmisión','Desequilibrio del rotor','Defecto en la jaula','Fallo del variador de frecuencia'],ok:0,
+  fb:'Un 2× alto es la huella típica de la desalineación. Encaja con la holgura del casquillo guía: el rodamiento dañado es una consecuencia, no la causa.',
+  bad:'El desequilibrio se ve sobre todo a 1×. Piensa qué defecto de montaje se ve a 2×.'}
+];
+function vVib(){
+ var done=S.vq[0]&&S.vq[1]&&S.vq[2];
+ var h='<div class="eyebrow">Estación 2 · Reto del motor: análisis de vibraciones</div><h2>Escucha al rodamiento</h2>'+
+ '<p>El rodamiento del lado motor es el principal sospechoso. Fiabilidad ha medido con un acelerómetro en la tapa del motor, a <b>1450 rpm (24,17 Hz)</b>. Las gráficas son didácticas, simuladas para esta actividad.</p>'+schem([2])+figBearing()+
+ '<div class="grid"><div class="card"><h3>SKF 6205-2RS1</h3><dl class="ds" style="margin:0"><dt>Medidas</dt><dd>25 × 52 × 15 mm</dd><dt>Carga dinámica C</dt><dd>14,8 kN</dd><dt>Velocidad límite</dt><dd>18 000 rpm</dd><dt>Bolas</dt><dd>9 (Ø 7,94 mm)</dd><dt>Ø primitivo</dt><dd>39,04 mm</dd></dl></div>'+
+ '<div class="card"><h3>Factores de fallo</h3><p class="sim" style="margin:0 0 6px">Multiplica por la velocidad de giro.</p><dl class="ds" style="margin:0"><dt>BPFO pista exterior</dt><dd>3,585 ×</dd><dt>BPFI pista interior</dt><dd>5,415 ×</dd><dt>2×BSF bolas</dt><dd>4,714 ×</dd><dt>FTF jaula</dt><dd>0,398 ×</dd></dl></div></div>'+
+ '<div class="card"><h3>Espectro</h3><div id="chart">'+svgSpec()+'</div>'+
+ (S.adv?'':'<div class="tgl" role="group" aria-label="Superponer frecuencias de fallo">'+[['R','Velocidad de giro 1×'],['O','BPFO'],['I','BPFI'],['B','2×BSF'],['F','FTF']].map(function(x){return '<button data-ov="'+x[0]+'" aria-pressed="'+(S.ov[x[0]]?'true':'false')+'">'+x[1]+'</button>'}).join('')+'</div>')+
+ '<label for="cur" class="sim">Cursor de frecuencia</label><input type="range" id="cur" min="0" max="300" step="0.5" value="'+S.cur+'"><div class="rd" id="rd"></div></div>'+
+ '<div class="card"><h3>Señal en el tiempo</h3>'+svgWave()+''+(S.adv?'':'<p class="sim" style="margin:6px 0 0">Los impactos se repiten con un periodo fijo. Mide el intervalo entre dos picos y calcula su inversa.</p>')+'</div>'+
+ '<h3 style="margin-top:20px">Tu diagnóstico</h3>';
+ VQ.forEach(function(q,i){
+  if(S.vq[i]){h+='<div class="fb good"><b>'+esc(q.q)+'</b><br>'+esc(q.o[q.ok])+'. '+esc(q.fb)+'</div>'}
+  else{h+='<div class="card"><b>'+(i+1)+'. '+esc(q.q)+'</b>'+ordFor(q.q,q.o.length).map(function(j){var t=q.o[j];return '<label class="opt"><input type="radio" name="q'+i+'" value="'+j+'"><span>'+esc(t)+'</span></label>'}).join('')+(S.vw[i]?'<div class="fb bad">'+(S.adv?'Respuesta incorrecta.':esc(q.bad))+' (−1 punto por cada intento fallido)</div>':'')+'</div>'}
+ });
+ h+='<div id="fb"></div><div class="row">'+(done?'<button class="primary" id="next">Volver al plano de la planta</button>':'<button class="primary" id="chk">Comprobar diagnóstico</button>')+'</div>';
+ app.innerHTML=h;
+ function rd(){$('#rd').textContent='Cursor: '+S.cur.toFixed(1)+' Hz · amplitud '+ampAt(S.cur).toFixed(2)+' g · '+(S.cur/FR).toFixed(2)+'× la velocidad de giro'}
+ rd();
+ $('#cur').oninput=function(){S.cur=+this.value;$('#chart').innerHTML=svgSpec();rd()};
+ app.querySelectorAll('[data-ov]').forEach(function(b){b.onclick=function(){var k=b.dataset.ov;S.ov[k]=!S.ov[k];b.setAttribute('aria-pressed',S.ov[k]?'true':'false');$('#chart').innerHTML=svgSpec()}});
+ var c=$('#chk');if(c)c.onclick=function(){
+  var any=false;
+  VQ.forEach(function(q,i){if(S.vq[i])return;var sel=app.querySelector('input[name=q'+i+']:checked');if(!sel)return;any=true;if(+sel.value===q.ok)S.vq[i]=true;else S.vw[i]++});
+  S.sc.vib=VQ.reduce(function(a,q,i){return a+(S.vq[i]?Math.max(0,q.full-S.vw[i]):0)},0);
+  if(S.vq[0]&&S.vq[1]&&S.vq[2])badge('Analista de vibraciones');
+  var tw=S.vw[0]+S.vw[1]+S.vw[2];
+  if(tw>=3&&!S.vDead){S.vDead=true;deadEnd('Repites la medición sin criterio','Pides repetir la medición en otros puntos y con otra carga. Pierdes un buen rato de paro y obtienes el mismo espectro. Vuelve a él y usa las marcas de frecuencia de fallo y los cursores.',180,null);return}
+  render();
+  if(!any)$('#fb').innerHTML='<div class="fb">Marca una respuesta en cada pregunta pendiente.</div>';
+ };
+ var n=$('#next');if(n)n.onclick=function(){S.done.vib=true;go('map')};
+}
+
+/* ---------- Pantallas ---------- */
+/* ---------- Esquemas por estación ---------- */
+function fig(svg,cap){return '<figure class="fig">'+svg+'<figcaption>'+cap+'</figcaption></figure>'}
+function figLoto(){
+ function box(x,w,t,hl){return '<rect class="part'+(hl?' hl':'')+'" x="'+x+'" y="36" width="'+w+'" height="56"/><text class="lbl" x="'+(x+w/2)+'" y="69" text-anchor="middle">'+t+'</text>'}
+ var s='<svg viewBox="0 0 720 170" role="img" aria-label="Esquema unifilar de la alimentación de la estación EF-07: red, seccionador con candado, variador, motor y brazo robótico">';
+ s+=box(10,96,'Red')+box(156,124,'Seccionador',1)+box(330,100,'Variador')+box(480,80,'Motor')+box(610,100,'Brazo');
+ [[106,156],[280,330],[430,480],[560,610]].forEach(function(p){s+='<path class="wire" d="M'+p[0]+' 64 H'+p[1]+'"/>'});
+ s+='<rect class="mark" x="206" y="12" width="24" height="18"/><path d="M211 12 v-6 a7 7 0 0 1 14 0 v6" fill="none" stroke="var(--fg)" stroke-width="2.5"/>';
+ s+='<text class="lbl s" x="218" y="112" text-anchor="middle">candado y etiqueta</text>';
+ s+='<rect class="part" x="600" y="118" width="120" height="30" style="stroke-dasharray:5 3"/><text class="lbl s" x="660" y="137" text-anchor="middle">energía residual</text>';
+ s+='<text class="lbl s" x="90" y="112" text-anchor="middle">medir aquí</text><text class="lbl s" x="520" y="112" text-anchor="middle">ausencia de tensión</text></svg>';
+ return fig(s,'Esquema unifilar simplificado: por dónde llega la energía a la estación y dónde se corta y se comprueba.');
+}
+function figBearing(){
+ var cx=170,cy=120,s='<svg viewBox="0 0 720 240" role="img" aria-label="Sección de un rodamiento de bolas con pista exterior, pista interior, bolas y jaula">';
+ s+='<circle class="part" cx="170" cy="120" r="105"/><circle cx="170" cy="120" r="82" style="fill:var(--panel);stroke:var(--muted);stroke-width:1.5"/>';
+ s+='<circle cx="170" cy="120" r="70" fill="none" class="floor"/><circle class="part" cx="170" cy="120" r="58"/><circle cx="170" cy="120" r="34" style="fill:var(--panel);stroke:var(--muted);stroke-width:1.5"/>';
+ for(var k=0;k<9;k++){var a=(k*40+20)*Math.PI/180;s+='<circle class="part" cx="'+(cx+70*Math.cos(a)).toFixed(1)+'" cy="'+(cy+70*Math.sin(a)).toFixed(1)+'" r="11"/>'}
+ function L(px,py,tx,ty,t){return '<path class="wire" d="M'+px+' '+py+' L'+(tx-6)+' '+ty+'"/><text class="lbl" x="'+tx+'" y="'+(ty+4)+'">'+t+'</text>'}
+ s+=L(224,43,340,40,'Pista exterior')+L(240,120,340,100,'Jaula')+L(170,166,340,160,'Pista interior')+L(205,181,340,205,'Bola (elemento rodante)');
+ s+='<text class="lbl s" x="340" y="60">fija en la carcasa del motor</text><text class="lbl s" x="340" y="180">gira con el eje</text></svg>';
+ return fig(s,'Sección esquemática de un rodamiento rígido de bolas. Cada elemento tiene su propia frecuencia de fallo.');
+}
+function figOil(){
+ var s='<svg viewBox="0 0 720 220" role="img" aria-label="Sección esquemática del reductor con nivel de aceite, engranajes, retén y tapón de vaciado">';
+ s+='<rect class="part" x="130" y="24" width="440" height="160"/><rect x="132" y="116" width="436" height="66" style="fill:var(--info);opacity:.28"/>';
+ s+='<line x1="132" y1="116" x2="568" y2="116" class="floor"/><text class="lbl s" x="142" y="110">nivel de aceite</text>';
+ s+='<circle class="part" cx="260" cy="92" r="46"/><circle class="part" cx="400" cy="104" r="34"/><circle cx="260" cy="92" r="10" fill="var(--muted)"/><circle cx="400" cy="104" r="8" fill="var(--muted)"/>';
+ s+='<text class="lbl" x="260" y="60" text-anchor="middle">Engranaje</text>';
+ s+='<line class="shaft" x1="400" y1="104" x2="660" y2="104"/><rect class="part hl" x="560" y="90" width="12" height="28"/><text class="lbl" x="566" y="82" text-anchor="middle">Retén</text>';
+ s+='<rect class="part" x="300" y="182" width="26" height="12"/><text class="lbl s" x="313" y="210" text-anchor="middle">tapón de vaciado</text>';
+ s+='<rect class="part" x="480" y="10" width="40" height="14"/><text class="lbl s" x="500" y="8" text-anchor="middle">respiradero</text>';
+ s+='<line class="shaft" x1="40" y1="92" x2="260" y2="92"/><text class="lbl s" x="60" y="82">eje del motor</text></svg>';
+ return fig(s,'Reductor en sección, sin escala: el aceite lubrica y evacua calor, y el retén lo mantiene dentro.');
+}
+function figAlign(){
+ var s='<svg viewBox="0 0 720 210" role="img" aria-label="Eje del motor y eje del reductor con un desalineamiento exagerado y un comparador de reloj">';
+ s+='<rect class="part" x="60" y="86" width="270" height="28"/><rect class="part" x="390" y="108" width="270" height="28"/><rect class="part" x="330" y="82" width="60" height="58"/>';
+ s+='<text class="lbl" x="195" y="106" text-anchor="middle">Eje del motor</text><text class="lbl" x="525" y="128" text-anchor="middle">Eje del reductor</text><text class="lbl s" x="360" y="160" text-anchor="middle">acoplamiento</text>';
+ s+='<circle class="part hl" cx="250" cy="40" r="24"/><line x1="250" y1="40" x2="256" y2="26" stroke="var(--fg)" stroke-width="2"/><path class="wire" d="M250 64 V86"/><text class="lbl s" x="290" y="38">comparador de reloj</text>';
+ s+='<path d="M600 114 V136 M594 114 H606 M594 136 H606" stroke="var(--alert)" stroke-width="2" fill="none"/><text class="lbl s" x="612" y="170" text-anchor="middle" style="fill:var(--alert)">desalineación (exagerada)</text></svg>';
+ return fig(s,'Alineación de ejes con comparador de reloj. En la realidad se mide en centésimas de milímetro.');
+}
+var LOCS={
+ 'var':{n:'Variador de frecuencia',k:5,d:'Armario eléctrico del robot, junto al motor. Alimenta y protege al motor.',chal:'cor',reads:[
+  {t:'var',r:'Alarma de sobrecorriente activa. El histórico muestra picos de par en cada ciclo desde hace semanas.'},
+  {t:'pinza',r:'Corriente del motor: 17,5 A frente a 11 A nominales. Sobrecarga sostenida.'},
+  {t:'vis',r:'Armario limpio, ventilación libre y cableado en buen estado. El variador no muestra daños.'}]},
+ 'mot':{n:'Motor eléctrico',k:2,d:'Motor trifásico con su rodamiento del lado motor. Aquí se mide el aislamiento y se escucha el rodamiento.',chal:'vib',reads:[
+  {t:'mega',r:'Aislamiento del bobinado: 150 MΩ (mínimo 10 MΩ). El bobinado está sano: no es un fallo eléctrico del motor.'},
+  {t:'term',r:'Calentamiento por sobrecarga repartido por la carcasa. Bornas sin puntos calientes.'},
+  {t:'vib',r:'Ruido y vibración anómalos en el lado motor. Para localizar el defecto dentro del rodamiento hace falta el análisis de vibraciones.'},
+  {t:'comp',r:'Desalineación motor–transmisión: 0,25 mm/100 mm (máximo 0,05).'}]},
+ 'red':{n:'Reductor',k:4,d:'Reductor con baño de aceite, retén de salida y rodamiento del lado transmisión.',chal:'lub',reads:[
+  {t:'ir',r:'Aceite a 96 °C (máximo 80 °C). Aspecto oscuro y olor a quemado.'},
+  {t:'vis',r:'Retén roto y aceite derramado en la bancada.'},
+  {t:'term',r:'Reductor a 96 °C, el punto más caliente de toda la instalación.'}]},
+ 'car':{n:'Carro y guía',k:1,d:'Carro del husillo con el casquillo guía sobre el que se desplaza el brazo.',chal:'ali',reads:[
+  {t:'comp',r:'Holgura del casquillo guía: 0,30 mm (máximo admisible 0,06 mm).'},
+  {t:'vis',r:'Marca de roce y juego visible en el casquillo guía, compatible con un golpe previo.'},
+  {t:'var',r:'Los picos de par del variador coinciden con un tramo concreto del recorrido del carro: algo roza en ese punto.'}]},
+ 'utl':{n:'Utillaje y brazo',k:6,d:'Brazo robótico y utillaje que monta la pieza en la carrocería.',reads:[
+  {t:'vis',r:'Marca de golpe reciente en el soporte del utillaje, de una colisión leve que no paró la línea.'},
+  {t:'var',r:'Registro de eventos: un aviso de colisión leve hace varias semanas, sin parada ni revisión posterior.'}]}
+};
+var ADV={
+ 'var|var':'Alarma de sobrecorriente activa. Histórico: picos de par en cada ciclo desde hace semanas.',
+ 'var|pinza':'Corriente del motor: 17,5 A (nominal 11 A).',
+ 'var|vis':'Armario limpio, ventilación libre, cableado sin daños visibles.',
+ 'mot|mega':'Resistencia de aislamiento del bobinado: 150 MΩ.',
+ 'mot|term':'Termografía de la carcasa: calentamiento repartido. Bornas sin puntos calientes.',
+ 'mot|vib':'Ruido y vibración anómalos en el lado motor.',
+ 'mot|comp':'Desalineación angular medida entre motor y transmisión: 0,25 mm/100 mm.',
+ 'red|ir':'Temperatura del aceite: 96 °C. Aspecto oscuro, olor a quemado.',
+ 'red|vis':'Retén con fuga; aceite en la bancada.',
+ 'red|term':'Temperatura máxima del reductor: 96 °C.',
+ 'car|comp':'Holgura medida del casquillo guía: 0,30 mm.',
+ 'car|vis':'Marca de roce y juego visible en el casquillo guía.',
+ 'car|var':'Picos de par del variador en un tramo concreto del recorrido del carro.',
+ 'utl|vis':'Marca de golpe reciente en el soporte del utillaje.',
+ 'utl|var':'Registro de eventos: aviso de colisión leve hace varias semanas, sin parada ni revisión posterior.'
+};
+function rtxt(loc,r){return S.adv&&ADV[loc+'|'+r.t]?ADV[loc+'|'+r.t]:r.r}
+function qt(q){return S.adv&&q.qa?q.qa:q.q}
+var TNAME={},TROLE={};
+['mec','ele'].forEach(function(r){TOOLS[r].tools.forEach(function(t){TNAME[t.id]=t.n;TROLE[t.id]=r})});
+function rk(l,t){return l+'|'+t}
+function nEv(){return Object.keys(S.seen).length}
+function notebook(){
+ var ks=Object.keys(S.seen);
+ if(!ks.length)return '<div class="card"><h3>Cuaderno de campo</h3><p class="sim" style="margin:0">Aún no has anotado ninguna lectura.</p></div>';
+ return '<div class="card"><h3>Cuaderno de campo</h3><ul style="margin:0;padding-left:18px;font-size:14px">'+ks.map(function(k){var p=k.split('|'),L=LOCS[p[0]],r=L.reads.filter(function(x){return x.t===p[1]})[0];return '<li><b>'+esc(L.n)+' · '+esc(TNAME[p[1]])+':</b> '+esc(rtxt(p[0],r))+'</li>'}).join('')+'</ul></div>';
+}
+function vMap(){
+ var D=S.done,ready=D.vib&&D.lub&&D.ali&&D.cor&&nEv()>=4;
+ var cards=['var','mot','red','car','utl'].map(function(k){
+  var L=LOCS[k],got=L.reads.filter(function(r){return S.seen[rk(k,r.t)]}).length;
+  var st=L.chal?(D[L.chal]?' · reto hecho':' · reto pendiente'):'';
+  return '<div class="card"><h3><span class="nb">'+L.k+'</span>'+L.n+'</h3><p style="font-size:14px;color:var(--muted)">'+L.d+'</p><p class="sim" style="margin:0 0 8px">Lecturas: '+got+' de '+L.reads.length+st+'</p><button data-loc="'+k+'" class="primary">Ir a este punto</button></div>';
+ }).join('');
+ var falta=[];if(!D.vib)falta.push('el análisis de vibraciones del motor');if(!D.lub)falta.push('el análisis de aceite del reductor');if(!D.ali)falta.push('la alineación con comparador del carro');if(!D.cor)falta.push('el histórico de corriente del variador');if(nEv()<4)falta.push('al menos 4 lecturas ('+nEv()+' ahora)');
+ app.innerHTML='<div class="eyebrow">Estación 2 · Diagnóstico en planta</div><h2>Elige dónde investigar</h2><p>Recorre la instalación en el orden que quieras. En cada punto usa las herramientas de tu rol; lo que no lleves en el kit tendrás que pedírselo a tu compañero. Cuando tengas pistas suficientes, decide la causa.</p>'+schem('all')+
+ '<div class="grid">'+cards+'</div>'+notebook()+
+ '<div class="row"><button class="primary" id="next"'+(ready?'':' disabled')+'>Ir a la causa raíz</button>'+(ready?'':'<span class="sim">Te falta: '+falta.join(', ')+'.</span>')+'</div>';
+ app.querySelectorAll('[data-loc]').forEach(function(b){b.onclick=function(){S.loc=b.dataset.loc;go('loc')}});
+ var n=$('#next');if(n)n.onclick=function(){go('e3')};
+}
+function vLoc(){
+ var L=LOCS[S.loc],cards=L.reads.map(function(r){
+  var key=rk(S.loc,r.t),seen=S.seen[key],own=TROLE[r.t]===S.role;
+  var btn=seen?'':(own?'<button data-use="'+key+'" class="primary">Usar herramienta (+20 s)</button>':'<button data-help="'+key+'">Pedir apoyo al compañero (−2 puntos, +60 s)</button>');
+  return '<div class="card tool'+(own?'':' locked')+'"><h3>'+TNAME[r.t]+'</h3>'+(own?'':'<span class="sim">Herramienta de tu compañero</span>')+btn+(seen?'<div class="read bad">'+esc(rtxt(S.loc,r))+'</div>':'')+'</div>';
+ }).join('');
+ var chal='';
+ var CT={vib:['Fiabilidad dejó medido el espectro de vibración de este motor. Interprétalo para localizar el defecto del rodamiento.','Abrir el análisis de vibraciones'],lub:['El laboratorio de planta ha analizado una muestra del aceite del reductor. Interprétala y decide qué lubricante corresponde.','Abrir el análisis de aceite'],ali:['Mide la alineación del acoplamiento con un comparador de reloj y decide la corrección.','Abrir la alineación con comparador'],cor:['Interpreta el histórico de corriente del variador y decide qué hacer con la protección.','Abrir el histórico de corriente']};
+ if(L.chal)chal='<div class="card"><h3>Reto de este punto</h3><p style="font-size:14px;color:var(--muted)">'+CT[L.chal][0]+'</p><p class="sim" style="margin:0 0 8px">'+(S.done[L.chal]?'Hecho':'Pendiente')+'</p><button data-chal="'+L.chal+'" class="primary">'+(S.done[L.chal]?'Revisar el reto':CT[L.chal][1])+'</button></div>';
+ app.innerHTML='<div class="eyebrow">Estación 2 · Diagnóstico en planta</div><h2><span class="nb">'+L.k+'</span>'+L.n+'</h2><p>'+L.d+'</p>'+schem([L.k])+'<div class="grid">'+cards+chal+'</div><p class="order">Tus lecturas en total: '+nEv()+' · Puntos por evidencias: '+Math.min(5,nEv())+' de 5</p><div class="row"><button id="back">Volver al plano de la planta</button></div>';
+ function got(){S.sc.ev=Math.min(5,nEv());if(nEv()>=8)badge('Ojo clínico')}
+ app.querySelectorAll('[data-use]').forEach(function(b){b.onclick=function(){S.seen[b.dataset.use]=1;got();addTime(20);render()}});
+ app.querySelectorAll('[data-help]').forEach(function(b){b.onclick=function(){S.seen[b.dataset.help]=1;got();S.sc.pen+=2;addTime(60);render()}});
+ app.querySelectorAll('[data-chal]').forEach(function(b){b.onclick=function(){go(b.dataset.chal)}});
+ $('#back').onclick=function(){go('map')};
+}
+function deadEnd(title,text,sec,back,m2){if(m2)S.m2dead++;else{S.deads++;S.deadLog.push(title)}addTime(sec);S.dead={title:title,text:text,sec:sec,back:back};render()}
+function vDead(){
+ var d=S.dead;
+ app.innerHTML='<svg viewBox="0 0 120 104" width="84" role="img" aria-label="Señal de peligro" style="display:block;margin-bottom:8px"><path d="M60 6 L116 98 H4 Z" style="fill:var(--accent);stroke:var(--fg);stroke-width:4;stroke-linejoin:round"/><rect x="55" y="38" width="10" height="34" style="fill:var(--on-accent)"/><rect x="55" y="78" width="10" height="10" style="fill:var(--on-accent)"/></svg><div class="eyebrow">Callejón sin salida</div><h2>'+esc(d.title)+'</h2><div class="fb bad"><p style="margin:0">'+esc(d.text)+'</p></div>'+(d.sec?'<p class="order">Tiempo perdido: +'+fmt(d.sec)+' de paro.</p>':'')+'<div class="row"><button class="primary" id="back">Retroceder</button></div>';
+ $('#back').onclick=function(){var b=d.back;S.dead=null;if(b)b();render();window.scrollTo(0,0)};
+}
+function ordFor(k,n){S.ord=S.ord||{};if(!S.ord[k]){var a=[];for(var i=0;i<n;i++)a.push(i);S.ord[k]=shuffle(a)}return S.ord[k]}
+function qBlock(Q,solved,wrong){
+ return Q.map(function(q,i){
+  if(solved[i]&&S.pal[q.q])return '<div class="fb warn"><b>'+esc(qt(q))+'</b><br>Elegiste: '+esc(q.o[S.pal[q.q].v])+'. <b>Solución paliativa.</b> '+esc(S.pal[q.q].d[1])+'</div>';
+  if(solved[i])return '<div class="fb good"><b>'+esc(qt(q))+'</b><br>'+esc(q.o[q.ok])+'. '+esc(q.fb)+'</div>';
+  return '<div class="card"><b>'+(i+1)+'. '+esc(qt(q))+'</b>'+ordFor(q.q,q.o.length).map(function(j){var t=q.o[j];return '<label class="opt"><input type="radio" name="q'+i+'" value="'+j+'"><span>'+esc(t)+'</span></label>'}).join('')+(wrong[i]?'<div class="fb">Ya te equivocaste aquí: cada intento fallido resta 1 punto.</div>':'')+'</div>';
+ }).join('');
+}
+function qCheck(Q,solved,wrong){
+ var any=false,dead=null;
+ Q.forEach(function(q,i){if(solved[i])return;var sel=app.querySelector('input[name=q'+i+']:checked');if(!sel)return;any=true;var v=+sel.value;if(v===q.ok)solved[i]=true;else if(q.pal&&q.pal[v]){solved[i]=true;S.pal[q.q]={v:v,d:q.pal[v]}}else{wrong[i]++;if(!dead)dead=q.dead[v]}});
+ return {any:any,dead:dead};
+}
+function qPts(Q,solved,wrong){return Q.reduce(function(a,q,i){return a+(solved[i]?Math.max(0,(S.pal[q.q]?Math.floor(q.full/2):q.full)-wrong[i]):0)},0)}
+function figHints(){document.querySelectorAll('.fig').forEach(function(f){if(f.scrollWidth>f.clientWidth+2&&!f.querySelector('.fh')){var q=document.createElement('p');q.className='sim fh';q.style.margin='0 0 6px';q.textContent='Desliza el esquema hacia los lados para verlo entero →';f.insertBefore(q,f.firstChild)}})}
+function render(){hud();if(S.dead){vDead();return}({qr:vQR,pc:vPC,tprop:vTProp,m2:vM2,m3:vM3,ali:function(){vChal('ali')},cor:function(){vChal('cor')},prof:vProf,profile:vProfile,intro:vIntro,e1:vE1,map:vMap,loc:vLoc,e2:vE2,vib:vVib,lub:vLub,e3:vE3,e4:vE4,mont:vMont,e5:vE5,final:vFinal})[S.step]();autosave();figHints()}
+
+function vLub(){
+ var done=S.lq.every(Boolean);
+ var h='<div class="eyebrow">Estación 2 · Reto del reductor: lubricación y aceite</div><h2>Lo que dice el aceite</h2>'+
+ '<p>Antes de decidir la causa, miras el reductor. Has sacado una muestra del aceite y el laboratorio de planta devuelve estos valores. Son didácticos, simulados para la actividad.</p>'+figOil()+
+ '<div class="card tbl"><table><tr><th>Parámetro</th><th class="n">Muestra</th>'+(S.adv?'':'<th class="n">Referencia</th>')+'</tr>'+
+ [['Viscosidad a 40 °C','168 mm²/s','220 mm²/s'],['Temperatura de trabajo','96 °C','80 °C máx.'],['Hierro (partículas de desgaste)','410 ppm','150 ppm máx.'],['Agua','0,04 %','0,10 % máx.'],['Aspecto','oscuro, olor a quemado','ámbar, claro']].map(function(r){return '<tr><td>'+r[0]+'</td><td class="n">'+r[1]+'</td>'+(S.adv?'':'<td class="n">'+r[2]+'</td>')+'</tr>'}).join('')+'</table></div>'+
+ qBlock(LUBQ,S.lq,S.lw)+'<div id="fb"></div><div class="row">'+(done?'<button class="primary" id="next">Volver al plano de la planta</button>':'<button class="primary" id="chk">Comprobar</button>')+'</div>';
+ app.innerHTML=h;
+ var c=$('#chk');if(c)c.onclick=function(){
+  var r=qCheck(LUBQ,S.lq,S.lw);S.sc.lub=qPts(LUBQ,S.lq,S.lw);
+  if(S.lq.every(Boolean))badge('Lubricación');
+  if(r.dead){deadEnd(r.dead[0],r.dead[1],180,null);return}
+  render();if(!r.any)$('#fb').innerHTML='<div class="fb">Marca una respuesta en cada pregunta pendiente.</div>';
+ };
+ var n=$('#next');if(n)n.onclick=function(){S.done.lub=true;go('map')};
+}
+
+function vMont(){
+ var done=S.mq.every(Boolean);
+ var h='<div class="eyebrow">Estación 5 · Montaje y ajuste</div><h2>Montar bien también cuenta</h2>'+
+ '<p>Las piezas correctas no sirven si el montaje las daña. Dos decisiones de taller antes de arrancar.</p>'+figAlign()+qBlock(MONTQ,S.mq,S.mw);
+ if(done){
+  h+='<div class="fb good"><b>Prueba en vacío superada.</b></div><div class="card tbl"><table><tr><th>Medida</th><th class="n">Antes</th><th class="n">Ahora</th><th class="n">Límite</th></tr>'+
+  '<tr><td>Corriente del motor</td><td class="n">17,5 A</td><td class="n">10,8 A</td><td class="n">11 A</td></tr>'+
+  '<tr><td>Temperatura del aceite</td><td class="n">96 °C</td><td class="n">62 °C</td><td class="n">80 °C</td></tr>'+
+  '<tr><td>Holgura del casquillo</td><td class="n">0,30 mm</td><td class="n">'+(S.partsPal?'<b>0,30 mm</b>':'0,03 mm')+'</td><td class="n">0,06 mm</td></tr>'+
+  '<tr><td>Desalineación</td><td class="n">0,25 mm/100 mm</td><td class="n">0,04 mm/100 mm</td><td class="n">0,05 mm/100 mm</td></tr></table></div>'+
+  '<p><b>La línea vuelve a producir.</b> Tiempo de paro: '+fmt(S.sec)+'.'+(S.partsPal?' Ojo: la holgura del casquillo sigue en 0,30 mm, muy por encima del límite.':'')+'</p><div class="row"><button class="primary" id="next">Cerrar el parte</button></div>';
+ }else h+='<div id="fb"></div><div class="row"><button class="primary" id="chk">Comprobar</button></div>';
+ app.innerHTML=h;
+ var c=$('#chk');if(c)c.onclick=function(){
+  var r=qCheck(MONTQ,S.mq,S.mw);S.sc.mon=qPts(MONTQ,S.mq,S.mw);
+  if(S.mq.every(Boolean)){S.clockStopped=true;tick();if(S.sc.seg>=12&&S.sec<=1500){S.sc.bonus=4;badge('Rapidez con seguridad')}badge('Montaje limpio');badge('Línea en marcha')}
+  if(r.dead){deadEnd(r.dead[0],r.dead[1],180,null);return}
+  render();if(!r.any)$('#fb').innerHTML='<div class="fb">Marca una respuesta en cada pregunta pendiente.</div>';
+ };
+ var n=$('#next');if(n)n.onclick=function(){go('e5')};
+}
+
+function vProfile(){
+ var tmp={nick:PROFILE.nick,av:PROFILE.av};
+ app.innerHTML='<div class="eyebrow">Antes de entrar en planta</div><h2>Tu ficha de operario</h2><p>Elige un nick y un avatar. Con cada logro de la partida tu avatar ganará accesorios y, al final, una medalla según tu puntuación.</p>'+
+ '<label for="nick"><b>Nick</b> (2 a 16 caracteres; no uses tu nombre completo)</label><input class="nick" id="nick" maxlength="16" autocomplete="off" value="'+esc(tmp.nick).replace(/"/g,'&quot;')+'">'+
+ '<h3>Avatar</h3><div class="avgrid" id="avs">'+AV.map(function(a,i){return '<button class="avp" data-a="'+i+'" aria-pressed="'+(i===tmp.av)+'">'+avatar(i,[],null,56,'Avatar '+a.n)+a.n+'</button>'}).join('')+'</div>'+
+ '<h3>Accesorios por conseguir</h3><div class="vit">'+ACC.map(function(x){return '<div class="md off"><div><b>'+x.n+'</b>'+x.d+'</div></div>'}).join('')+'</div>'+
+ '<div id="fb"></div><div class="row"><button class="primary" id="go">Entrar en planta</button></div><p style="margin-top:24px;font-size:14px"><button id="tch">Soy profesor/a: ranking de clase</button> <button id="qrb">Mostrar QR de la actividad</button> <button id="pcb2">Puesta en común: valorar propuestas</button></p>'+loadBox();
+ $('#tch').onclick=function(){go('prof')};$('#pcb2').onclick=function(){go('pc')};$('#qrb').onclick=function(){go('qr')};wireLoad();
+ app.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){tmp.av=+b.dataset.a;app.querySelectorAll('[data-a]').forEach(function(x){x.setAttribute('aria-pressed',x===b)})}});
+ $('#go').onclick=function(){
+  var n=$('#nick').value.replace(/[^A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ _.\-]/g,'').trim().slice(0,16);
+  if(n.length<2){$('#fb').innerHTML='<div class="fb bad">El nick necesita al menos 2 caracteres (letras, números, espacio, punto o guion).</div>';return}
+  PROFILE.nick=n;PROFILE.av=tmp.av;try{localStorage.setItem('lp_profile',JSON.stringify(PROFILE))}catch(e){}
+  go('intro');
+ };
+}
+/* ---------- Continuar desde un informe o un código ---------- */
+function u8b64(u){var r='';for(var i=0;i<u.length;i+=8192)r+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(r)}
+function b64u8(b){var r=atob(b),u=new Uint8Array(r.length);for(var i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u}
+async function packS(){
+ var o={};Object.keys(S).forEach(function(k){if(k!=='timer'&&k!=='ord'&&k!=='dead')o[k]=S[k]});o.prof={nick:PROFILE.nick,av:PROFILE.av};
+ var j=JSON.stringify(o),u,pre='LPS1';
+ if(window.CompressionStream){var st=new Blob([j]).stream().pipeThrough(new CompressionStream('deflate-raw'));u=new Uint8Array(await new Response(st).arrayBuffer());pre='LPS2'}else u=new TextEncoder().encode(j);
+ return pre+'-'+u8b64(u)+'-'+hash32(j+'|ef07');
+}
+async function unpackS(txt){
+ var m=/(LPS[12])-([A-Za-z0-9+\/=]+)-([0-9a-f]{8})/.exec(String(txt));if(!m)return null;
+ try{var u=b64u8(m[2]),j;
+  if(m[1]==='LPS2'){var st=new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'));j=await new Response(st).text()}else j=new TextDecoder().decode(u);
+  if(hash32(j+'|ef07')!==m[3])return null;var o=JSON.parse(j);return o&&o.sc&&o.role?o:null}catch(e){return null}
+}
+function loadBox(){return '<div class="card"><h3>Continuar desde un informe o un código</h3><p style="margin:0 0 8px;font-size:14px;color:var(--muted)">Pega aquí el informe que guardaste, o solo su línea «CÓDIGO DE CONTINUACIÓN», para seguir donde lo dejaste, aunque cambies de ordenador. Se recupera tu partida, no los cambios que hayas escrito a mano en el informe.</p><textarea class="sheet" id="lcode" rows="3" style="width:100%;box-sizing:border-box" placeholder="Pega aquí el informe o el código"></textarea><div class="row"><button id="ldc">Cargar y continuar</button></div><div id="lfb"></div></div>'}
+function wireLoad(){var b=$('#ldc');if(!b)return;b.onclick=async function(){
+ var o=await unpackS($('#lcode').value);
+ if(!o){$('#lfb').innerHTML='<div class="fb bad">No encuentro un código válido. Pega el informe completo o la línea del código sin modificarla.</div>';return}
+ if(o.prof&&o.prof.nick){PROFILE.nick=String(o.prof.nick).slice(0,16);PROFILE.av=Math.max(0,Math.min(5,+o.prof.av||0));try{localStorage.setItem('lp_profile',JSON.stringify(PROFILE))}catch(e){}}
+ delete o.prof;restore(o);
+}}
+function saveable(){return S.role&&['prof','tprop','pc','qr','profile','intro'].indexOf(S.step)<0}
+function autosave(){if(!saveable()||S.dead)return;try{localStorage.setItem('lp_save',JSON.stringify(S))}catch(e){}}
+function restore(o){
+ clearInterval(S.timer);S=o;S.timer=null;S.dead=null;S.ord={};S.t=S.sec||0;S.sc=Object.assign({xt:0,rec:0},S.sc);
+ if(['prof','tprop','pc','qr','profile','intro'].indexOf(S.step)>=0)S.step='map';
+ startClock();render();window.scrollTo(0,0);
+}
+function openSave(){
+ packS().then(function(c){
+  var d=document.createElement('div');d.id='svo';d.style.cssText='position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+  d.innerHTML='<div class="card" style="max-width:640px;width:100%;max-height:90vh;overflow:auto;margin:0"><h3>Guardar la partida</h3><p style="font-size:14px;color:var(--muted)">Copia este código y guárdalo en un documento. Para seguir otro día, aunque sea en otro ordenador, pégalo en «Continuar desde un informe o un código» al abrir el juego. El reloj de paro se detiene mientras no juegas.</p><textarea class="sheet" id="svc" readonly rows="5" style="width:100%;box-sizing:border-box">'+esc(c)+'</textarea><div class="row"><button class="primary" id="svcp">Copiar código</button><button id="svx">Cerrar</button></div><div id="svf"></div></div>';
+  document.body.appendChild(d);
+  $('#svx').onclick=function(){d.remove()};
+  $('#svcp').onclick=function(){copyEl($('#svc'),$('#svf'))};
+ });
+}
+function readSave(){try{var o=JSON.parse(localStorage.getItem('lp_save')||'null');return o&&o.sc&&o.role?o:null}catch(e){return null}}
+function saveCard(){
+ var o=readSave();if(!o)return '';
+ var np=Object.keys(o.pal||{}).length,pend=np&&!(o.m2Q&&o.rq&&o.rq.every(Boolean)),mid=['final','m2','m3'].indexOf(o.step)<0;
+ var c=o.sc,t=Math.min(120,Math.max(0,c.seg+c.ev+c.vib+c.lub+c.root+c.chain+c.parts+c.proc+c.mon+c.prev+c.bonus-c.pen+c.xt+c.rec));
+ return '<div class="card"><h3>Tienes una partida guardada</h3><p style="margin:0 0 8px;font-size:14px;color:var(--muted)">'+t+' puntos, '+np+' solución(es) paliativa(s)'+(pend&&!mid?'. Te queda la misión 2 para cerrar el caso de raíz.':'.')+(mid?' Tienes una partida a medias: continúa donde la dejaste.':' Continúa con las misiones 2 y 3 y con el informe. Para jugar con el otro rol, elige uno abajo.')+'</p><button class="primary" id="resume">Continuar mi partida guardada</button></div>';
+}
+function vIntro(){
+ app.innerHTML='<div class="me" style="margin-bottom:10px">'+avatar(PROFILE.av,[],null,48)+'<span>'+esc(PROFILE.nick)+'</span><button id="chg" style="margin-left:auto">Cambiar nick o avatar</button></div><p style="margin:0 0 12px"><button id="pcb">Puesta en común: valorar las propuestas de la clase</button></p>'+saveCard()+loadBox()+'<div class="eyebrow">Alerta de planta · línea de montaje final</div><h1>La EF-07 está parada</h1>'+
+ '<p>La estación EF-07 es el cuello de botella de la línea. Lleva meses sin mantenimiento preventivo y el brazo robótico que monta el utillaje ha saltado por sobrecorriente. Cada minuto de paro cuenta: el cronómetro ya está pendiente de arrancar.</p>'+
+ schem('all')+'<p>Primero decide tu rol. De él dependen tus herramientas iniciales, y lo que no lleves tendrás que pedírselo a tu compañero, con coste de puntos.</p>'+
+ '<div class="card"><h3>Nivel</h3><div class="tgl" role="group" aria-label="Nivel de dificultad"><button data-lv="0" aria-pressed="'+(!S.adv)+'">Guiado: con ayudas y datos comentados</button><button data-lv="1" aria-pressed="'+S.adv+'">Avanzado: sin ayudas y datos sin interpretar</button></div><p class="sim" style="margin:8px 0 0">En el nivel avanzado tendrás que buscar en tus apuntes o en internet los valores límite y las frecuencias de fallo.</p></div>'+
+ '<div class="grid">'+
+ '<button class="role" data-r="mec"><h3>Técnico/a mecánico</h3><div class="eyebrow">Tu kit</div><ul><li>Comparador de reloj y galgas</li><li>Termómetro de infrarrojos</li><li>Estetoscopio mecánico</li><li>Inspección visual con linterna</li></ul><div class="eyebrow" style="margin-top:10px">A favor</div><ul class="pc pro"><li>Mides holguras, alineación y temperaturas tú mismo</li><li>Llegas rápido al casquillo, los rodamientos y el reductor</li></ul><div class="eyebrow" style="margin-top:10px">En contra</div><ul class="pc con"><li>No lees el variador ni mides corriente ni aislamiento</li><li>En el variador y en el motor dependerás de tu compañero</li></ul></button>'+
+ '<button class="role" data-r="ele"><h3>Técnico/a eléctrico</h3><div class="eyebrow">Tu kit</div><ul><li>Pinza amperimétrica</li><li>Megóhmetro</li><li>Cámara termográfica</li><li>Consola del variador de frecuencia</li></ul><div class="eyebrow" style="margin-top:10px">A favor</div><ul class="pc pro"><li>Lees alarmas, histórico y corriente del variador</li><li>Descartas rápido un fallo eléctrico del motor</li></ul><div class="eyebrow" style="margin-top:10px">En contra</div><ul class="pc con"><li>No mides holguras ni alineación ni lubricación</li><li>En carro, reductor y rodamientos dependerás de tu compañero</li></ul></button></div>'+
+ '<div class="card"><h3>Cómo se puntúa (máximo 120)</h3><p style="margin:0 0 8px;font-size:14px;color:var(--muted)">Seguridad 15 · Diagnóstico 40 (evidencias, vibraciones, aceite, causa y cadena) · Intervención 40 (piezas, orden y montaje) · Documentación y prevención 15 · Retos de estación 6 (alineación y corriente) · Bonus de tiempo hasta 4 (solo con 12 o más en seguridad). Pedir apoyo resta 2. Una pieza errónea resta 5. Saltarte el bloqueo resta 10. Una solución paliativa puntúa la mitad: la línea arranca, pero la avería volverá. Si luego cierras la causa raíz en la misión 2, recuperas hasta 6 puntos. En la ficha de misión consta si la eliminaste a la primera o en la misión 2.</p><p style="margin:0;font-size:14px;color:var(--muted)">Ojo: una mala decisión no te dice «incorrecto». Puede llevarte a un callejón sin salida (retrocedes, pero el reloj no se detiene) o a una solución paliativa: la línea arranca, pero la causa sigue ahí y lo verás en el parte final.</p></div>';
+ $('#chg').onclick=function(){go('profile')};wireLoad();var rs=$('#resume');if(rs)rs.onclick=function(){var o=readSave();if(!o)return;restore(o)};$('#pcb').onclick=function(){go('pc')};
+ app.querySelectorAll('[data-lv]').forEach(function(b){b.onclick=function(){S.adv=b.dataset.lv==='1';app.querySelectorAll('[data-lv]').forEach(function(x){x.setAttribute('aria-pressed',x===b)})}});
+ app.querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){S.role=b.dataset.r;startClock();badge('Rol: '+(S.role==='mec'?'mecánico':'eléctrico'));go('e1')}});
+}
+
+function vE1(){
+ S.lotoOrder=S.lotoOrder||shuffle(LOTO.map(function(_,i){return i}));
+ var done=S.loto.length===LOTO.length;
+ app.innerHTML='<div class="eyebrow">Estación 1 · Seguridad y bloqueo</div><h2>Antes de tocar nada</h2>'+
+ '<p>El brazo está parado, pero sigue conectado a la red y con energía almacenada. Ordena el procedimiento de bloqueo y señalización pulsando los pasos en el orden correcto.</p>'+
+ figLoto()+'<div class="seq" id="seq">'+S.lotoOrder.map(function(i){return '<button data-i="'+i+'"'+(S.loto.indexOf(i)>-1?' class="used" disabled':'')+'>'+esc(LOTO[i])+'</button>'}).join('')+'</div>'+
+ '<div class="order">Pasos correctos: '+S.loto.length+' de '+LOTO.length+' · Errores: '+S.lotoErr+'</div><div id="fb"></div>'+
+ '<div class="row">'+(done?'<button class="primary" id="next">Entrar en planta</button>':'<button class="link" id="skip">Saltar el bloqueo (−10 puntos)</button>')+'</div>';
+ app.querySelectorAll('#seq button').forEach(function(b){b.onclick=function(){
+  var i=+b.dataset.i;
+  if(i===S.loto.length){S.loto.push(i);if(S.loto.length===LOTO.length){S.sc.seg=Math.max(0,15-3*S.lotoErr);badge('Bloqueo seguro');}render()}
+  else{S.lotoErr++;S.lotoRun++;
+   if(S.lotoRun>=3){S.lotoRun=0;S.loto=[];S.lotoOrder=shuffle(LOTO.map(function(_,k){return k}));deadEnd('El técnico de prevención para los trabajos','Has encadenado varios pasos fuera de orden y el técnico de prevención detiene la intervención: hay que empezar el procedimiento de bloqueo desde el principio.',120,null);return}
+   render();$('#fb').innerHTML='<div class="fb bad">Ese paso no va ahora. Piensa qué debe estar hecho antes: −3 puntos de seguridad.</div>'}
+ }});
+ var n=$('#next');if(n)n.onclick=function(){go('map')};
+ var sk=$('#skip');if(sk)sk.onclick=function(){if(!S.lotoSkipped){S.lotoSkipped=true;S.sc.pen+=10}
+  deadEnd('Alguien rearma el sistema','Sin bloqueo ni señalización, un compañero rearma la instalación desde el panel mientras revisas el carro: el brazo se mueve a un palmo de ti. Parada de emergencia, informe de incidente y mucho tiempo perdido. Vuelve al principio y haz el bloqueo como toca.',300,null)};
+}
+
+function toolHtml(role,locked){
+ var d=TOOLS[role];
+ return d.tools.map(function(t){
+  var seen=S.seen[t.id],cls=seen?(t.good?' good':' bad'):'';
+  var btn=seen?'':(locked?'<button data-help="'+t.id+'">Pedir apoyo al compañero (−2 puntos, +60 s)</button>':'<button data-use="'+t.id+'">Usar herramienta (+20 s)</button>');
+  return '<div class="card tool'+(locked?' locked':'')+'"><h3>'+t.n+'</h3>'+btn+(seen?'<div class="read'+cls+'">'+esc(t.r)+'</div>':'')+'</div>';
+ }).join('');
+}
+function vE2(){
+ var other=S.role==='mec'?'ele':'mec';
+ app.innerHTML='<div class="eyebrow">Estación 2A · Diagnóstico con herramientas</div><h2>Mide antes de decidir</h2>'+
+ '<p>Eres '+TOOLS[S.role].nombre.toLowerCase()+'. Reúne lecturas de la instalación. Cada medida tarda unos segundos de reloj; las de tu compañero se pagan en puntos. Necesitas al menos tres lecturas para pasar al análisis.</p>'+
+ schem('all')+'<h3>Tus herramientas</h3><div class="grid">'+toolHtml(S.role,false)+'</div>'+
+ '<h3 style="margin-top:20px">Herramientas de tu compañero ('+(other==='mec'?'mecánico':'eléctrico')+')</h3><div class="grid">'+toolHtml(other,true)+'</div>'+
+ '<div class="order">Lecturas reunidas: '+S.ev+' · Puntos de diagnóstico por evidencias: '+Math.min(5,S.ev)+' de 5</div>'+
+ '<div class="row"><button class="primary" id="next"'+(S.ev<3?' disabled':'')+'>Volver al plano de la planta</button></div>';
+ app.querySelectorAll('[data-use]').forEach(function(b){b.onclick=function(){S.seen[b.dataset.use]=1;S.ev++;S.sc.ev=Math.min(5,S.ev);addTime(20);if(S.ev===4)badge('Ojo clínico');render()}});
+ app.querySelectorAll('[data-help]').forEach(function(b){b.onclick=function(){S.seen[b.dataset.help]=1;S.ev++;S.sc.ev=Math.min(5,S.ev);S.sc.pen+=2;addTime(60);if(S.ev===4)badge('Ojo clínico');render()}});
+ $('#next').onclick=function(){S.done.e2=true;go('map')};
+}
+
+function vE3(){
+ var chainDone=S.chainPos===CHAIN.length;
+ var h='<div class="eyebrow">Estación 3 · Causa raíz</div><h2>¿Qué empezó todo?</h2>'+schem('all');
+ var lect=notebook();
+ h+=lect;
+ if(!S.rootOk){
+  h+='<h3>1 · Elige la causa raíz</h3>'+ordFor('root',ROOT.length).map(function(i){var o=ROOT[i];return '<label class="opt'+(S.rootWrong&&S.rootWrong[i]?' wrong':'')+'"><input type="radio" name="root" value="'+i+'"><span>'+esc(o.t)+'</span></label>'}).join('')+'<div id="fb"></div><div class="row"><button class="primary" id="ok">Confirmar causa</button></div>';
+ }else{
+  h+=(S.rootPal?'<div class="fb warn"><b>Causa aceptada, pero es solo un síntoma.</b> '+esc(ROOT[4].fb)+'</div>':'<div class="fb good"><b>Causa raíz confirmada.</b> '+esc(ROOT[2].fb)+'</div>')+'<h3>2 · Reconstruye la cadena de fallos</h3><p>Pulsa los eslabones en el orden en que ocurrieron. Cada error resta 2 puntos de diagnóstico.</p><div class="seq">';
+  h+=S.chainOrder.map(function(i){return '<button data-c="'+i+'"'+(i<S.chainPos?' class="used" disabled':'')+'>'+esc(CHAIN[i])+'</button>'}).join('')+'</div><div class="order">Eslabones correctos: '+S.chainPos+' de '+CHAIN.length+' · Errores: '+S.chainErr+'</div><div id="fb"></div>';
+  if(chainDone)h+='<div class="row"><button class="primary" id="next">Ir a reparar</button></div>';
+ }
+ app.innerHTML=h;
+ var ok=$('#ok');if(ok)ok.onclick=function(){
+  var sel=app.querySelector('input[name=root]:checked');if(!sel){$('#fb').innerHTML='<div class="fb">Marca una opción antes de confirmar.</div>';return}
+  var i=+sel.value;S.rootTries++;
+  if(ROOT[i].pal){S.rootOk=true;S.rootPal=true;S.pal.root={v:i,d:PAL_ROOT};S.sc.root=Math.max(0,4-3*(S.rootTries-1));S.chainOrder=shuffle(CHAIN.map(function(_,k){return k}));render()}
+  else if(ROOT[i].ok){S.rootOk=true;S.sc.root=Math.max(0,10-3*(S.rootTries-1));S.chainOrder=shuffle(CHAIN.map(function(_,k){return k}));badge('Causa raíz');render()}
+  else{S.rootWrong=S.rootWrong||{};S.rootWrong[i]=1;var d=DEAD_ROOT[i];deadEnd(d[0],d[1]+' '+ROOT[i].fb+' (−3 puntos si aciertas más tarde.)',240,null)}
+ };
+ app.querySelectorAll('[data-c]').forEach(function(b){b.onclick=function(){
+  var i=+b.dataset.c;
+  if(i===S.chainPos){S.chainPos++;if(S.chainPos===CHAIN.length){S.sc.chain=Math.max(0,10-2*S.chainErr)}render()}
+  else{S.chainErr++;S.chainRun++;S.sc.chain=Math.max(0,10-2*S.chainErr);
+   if(S.chainRun>=3){S.chainRun=0;S.chainPos=0;S.chainOrder=shuffle(CHAIN.map(function(_,k){return k}));deadEnd('El parte no cuadra','Has propuesto una secuencia incoherente y el jefe de turno te devuelve el informe: tienes que reconstruir la cadena de fallos desde el principio.',120,null);return}
+   render();$('#fb').innerHTML='<div class="fb bad">Ese eslabón no es el siguiente. Pregúntate qué provoca qué.</div>'}
+ }});
+ var n=$('#next');if(n)n.onclick=function(){go('e4')};
+}
+
+function P(){return S.partsPal?PROC.filter(function(_,k){return k!==2}):PROC}
+function vE4(){
+ var done=S.procPos===P().length;
+ var h='<div class="eyebrow">Estación 4 · Reparación y arranque</div><h2>Repara y rearma la línea</h2>'+schem([1,2,3,4]);
+ if(!S.partsOk){
+  h+=DS()+'<h3>1 · Elige qué hay que sustituir o hacer</h3><p>Marca todo lo necesario para eliminar la causa y sus consecuencias. Una pieza o acción errónea resta 5 puntos.</p>'+
+  ordFor('parts',PARTS.length).map(function(i){var o=PARTS[i];return '<label class="opt'+(S.partsWrong[i]?' wrong':'')+'"><input type="checkbox" value="'+i+'"><span>'+esc(o.t)+'</span></label>'}).join('')+'<div id="fb"></div><div class="row"><button class="primary" id="ok">Confirmar lista</button></div>';
+ }else if(!done){
+  h+=(S.partsPal?'<div class="fb warn"><b>Lista de trabajo parcial.</b> Rodamientos, retén y aceite, sin tocar el casquillo. La línea arrancará, pero la causa seguirá ahí.</div>':'<div class="fb good"><b>Lista de trabajo correcta.</b> Casquillo, dos rodamientos distintos, retén y aceite.</div>')+'<h3>2 · Ordena la intervención</h3><p>Cada error resta 2 puntos.</p><div class="seq">'+S.procOrder.map(function(i){return '<button data-p="'+i+'"'+(i<S.procPos?' class="used" disabled':'')+'>'+esc(P()[i])+'</button>'}).join('')+'</div><div class="order">Pasos correctos: '+S.procPos+' de '+P().length+' · Errores: '+S.procErr+'</div><div id="fb"></div>';
+ }else{
+  h+='<div class="fb good"><b>Secuencia de intervención correcta.</b> Queda el montaje de detalle.</div><div class="row"><button class="primary" id="next">Ir al montaje</button></div>';
+ }
+ app.innerHTML=h;
+ var ok=$('#ok');if(ok)ok.onclick=function(){
+  var sel=[].slice.call(app.querySelectorAll('input:checked')).map(function(x){return +x.value});
+  var wrong=sel.filter(function(i){return !PARTS[i].ok});
+  wrong.forEach(function(i){if(!S.partsWrong[i]){S.partsWrong[i]=1;S.sc.pen+=5}});
+  var missing=PARTS.filter(function(o,i){return o.ok&&sel.indexOf(i)<0}).length;
+  var miss=PARTS.map(function(o,i){return o.ok&&sel.indexOf(i)<0?i:-1}).filter(function(i){return i>=0});
+  if(!wrong.length&&miss.length===1&&miss[0]===0){S.partsOk=true;S.partsPal=true;S.pal.parts={v:0,d:PAL_PARTS};S.sc.parts=10;S.procOrder=shuffle(P().map(function(_,k){return k}));render()}
+  else if(!wrong.length&&!missing){S.partsOk=true;S.sc.parts=Math.max(0,20-5*Object.keys(S.partsWrong).length*0);badge('Pieza correcta');S.procOrder=shuffle(P().map(function(_,k){return k}));render()}
+  else if(wrong.length){var w=DEAD_PARTS[wrong[0]];deadEnd(w[0],w[1]+' (−5 puntos.)',180,null)}
+  else{render();$('#fb').innerHTML='<div class="fb bad">Falta algo por sustituir: revisa qué dañó la desalineación.</div>'}
+ };
+ app.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){
+  var i=+b.dataset.p;
+  if(i===S.procPos){S.procPos++;if(S.procPos===P().length){S.sc.proc=Math.max(0,15-2*S.procErr)}render()}
+  else{S.procErr++;S.procRun++;
+   if(S.procRun>=3){S.procRun=0;deadEnd('Montaje fuera de orden','Montas piezas sin respetar la secuencia: al arrancar, la instalación vibra y salta otra vez. Hay que desmontar y repetir la intervención desde el principio.',180,function(){S.procPos=0;S.procOrder=shuffle(P().map(function(_,k){return k}))});return}
+   render();$('#fb').innerHTML='<div class="fb bad">Ese paso no va ahora. Recuerda: alinear antes de rellenar y probar al final.</div>'}
+ }});
+ var n=$('#next');if(n)n.onclick=function(){go('mont')};
+}
+
+function vE5(){
+ app.innerHTML='<div class="eyebrow">Cierre · Parte y prevención</div><h2>Que no vuelva a pasar</h2><p>La línea ya produce, pero el reloj de paro está parado y esto no cuenta como tiempo. Elige las tres medidas preventivas que de verdad evitan la reincidencia.</p>'+schem('all')+
+ ordFor('prev',PREV.length).map(function(i){var o=PREV[i];return '<label class="opt"><input type="checkbox" value="'+i+'"><span>'+esc(o.t)+'</span></label>'}).join('')+'<div id="fb"></div><div class="row"><button class="primary" id="ok">Firmar el parte</button></div>';
+ $('#ok').onclick=function(){
+  var sel=[].slice.call(app.querySelectorAll('input:checked')).map(function(x){return +x.value});
+  if(sel.length!==3){$('#fb').innerHTML='<div class="fb">Elige exactamente tres medidas.</div>';return}
+  var okc=sel.filter(function(i){return PREV[i].ok}).length;
+  S.sc.prev=Math.max(0,5*okc-0);S.sc.prev=okc*5;
+  if(okc===3)badge('Plan preventivo');
+  S.prevOk=okc;S.prevSel=sel;go('final');
+ };
+}
+
+function rankRows(rows,me){
+ return '<table class="rk"><tr><th>#</th><th>Jugador/a</th><th class="n">Puntos</th><th class="n">Paro</th></tr>'+rows.map(function(r,i){return '<tr'+(r.me||r.id===me?' class="you"':'')+'><td>'+(i+1)+'</td><td>'+esc(r.nick||'?')+'</td><td class="n">'+(+r.score||0)+'</td><td class="n">'+fmt(+r.sec||0)+'</td></tr>'}).join('')+'</table>';
+}
+function hash32(x){var h=2166136261;for(var i=0;i<x.length;i++){h^=x.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return ('00000000'+h.toString(16)).slice(-8)}
+function mkCode(t){
+ var p=[PROFILE.nick,PROFILE.av,t,S.sec,scoreMedal(t)||'-',Object.keys(S.pal).length,S.deads,specialMedals().filter(function(m){return m.on}).length,S.adv?1:0,S.m2pts,S.m3pts,rootStatus()].join('|');
+ return 'LP1-'+btoa(unescape(encodeURIComponent(p)))+'-'+hash32(p+'|ef07');
+}
+function readCode(c){
+ try{var m=/^LP1-([A-Za-z0-9+\/=]+)-([0-9a-f]{8})$/.exec(c.trim());if(!m)return null;
+  var p=decodeURIComponent(escape(atob(m[1])));if(hash32(p+'|ef07')!==m[2])return null;
+  var f=p.split('|');return {nick:f[0],av:+f[1]||0,score:+f[2]||0,sec:+f[3]||0,medal:f[4]==='-'?'':f[4],pal:+f[5]||0,deads:+f[6]||0,esp:+f[7]||0,adv:+f[8]||0,m2:+f[9]||0,m3:+f[10]||0,root:+f[11]||0}}catch(e){return null}
+}
+function saveRank(t,med){
+ var first=!S.saved;S.saved=true;
+ var rec={nick:PROFILE.nick,score:t,sec:S.sec,ts:Date.now()};
+ var local=[Object.assign({me:1},rec)];
+ try{local=JSON.parse(localStorage.getItem('lp_hist')||'[]');if(first){local.push(rec);local.sort(function(a,b){return b.score-a.score||a.sec-b.sec});local=local.slice(0,5);localStorage.setItem('lp_hist',JSON.stringify(local))}}catch(e){}
+ var box=$('#rank');if(!box)return;
+ var code=mkCode(t);
+ box.innerHTML='<p style="margin:0 0 8px;font-size:14px;color:var(--muted)">El ranking de clase lo genera tu profesor/a con los códigos de partida. Copia el tuyo y entrégalo junto con la ficha. Estas son tus mejores partidas en este dispositivo:</p>'+rankRows(local,null)+
+ '<h3>Tu código de partida</h3><textarea class="sheet" id="code" readonly rows="3">'+esc(code)+'</textarea><div class="row"><button class="primary" id="cpc">Copiar código</button></div><div id="cfb"></div>';
+ $('#cpc').onclick=function(){var ta=$('#code');var ok=function(){$('#cfb').innerHTML='<div class="fb good">Código copiado.</div>'};var bad=function(){ta.select();$('#cfb').innerHTML='<div class="fb">Selecciona el texto y cópialo con Ctrl+C.</div>'};try{navigator.clipboard.writeText(code).then(ok,bad)}catch(e){bad()}};
+}
+function vProf(){
+ var saved='';try{saved=localStorage.getItem('lp_codes')||''}catch(e){}
+ app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Ranking de clase</h2><p>Pega aquí los códigos de partida de tus alumnos, uno por línea. Se comprueba que cada código no se haya modificado a mano y se ordena por puntos y, a igualdad, por menor tiempo de paro. Si un nick aparece más de una vez, cuenta su mejor partida.</p><textarea class="sheet" id="codes" rows="8" placeholder="LP1-...">'+esc(saved)+'</textarea><div class="row"><button class="primary" id="mk">Generar ranking</button><button id="tp">Puesta en común de propuestas</button><button id="tq">QR de la actividad</button><button id="bk">Volver</button></div><div id="out"></div>';
+ $('#tp').onclick=function(){go('tprop')};$('#tq').onclick=function(){go('qr')};
+ $('#bk').onclick=function(){go(PROFILE.nick?'intro':'profile')};
+ $('#mk').onclick=function(){
+  var raw=$('#codes').value;try{localStorage.setItem('lp_codes',raw)}catch(e){}
+  var lines=raw.split(/\s+/).filter(Boolean),best={},bad=0;
+  lines.forEach(function(l){var r=readCode(l);if(!r){bad++;return}var k=r.nick.toLowerCase();var o=best[k];if(!o||r.score>o.score||(r.score===o.score&&r.sec<o.sec))best[k]=r});
+  var rows=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.score-a.score||a.sec-b.sec});
+  var h=rows.length?'<div class="card tbl"><table class="rk"><tr><th>#</th><th>Jugador/a</th><th class="n">Puntos</th><th class="n">Paro</th><th>Medalla</th><th class="n">Paliativos</th><th>Causa raíz</th><th class="n">Callejones</th><th class="n">Especiales</th><th>Nivel</th><th class="n">Misión 2</th><th class="n">Misión 3</th></tr>'+rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td><span class="me">'+avatar(r.av,[],r.medal||null,30)+esc(r.nick)+'</span></td><td class="n">'+r.score+'</td><td class="n">'+fmt(r.sec)+'</td><td>'+esc(r.medal||'-')+'</td><td class="n">'+r.pal+'</td><td>'+['a la primera','en la misión 2','sin cerrar'][r.root]+'</td><td class="n">'+r.deads+'</td><td class="n">'+r.esp+'/8</td><td>'+(r.adv?'avanzado':'guiado')+'</td><td class="n">'+r.m2+'/15</td><td class="n">'+r.m3+'/10</td></tr>'}).join('')+'</table></div>':'<div class="fb">No hay códigos válidos.</div>';
+  if(bad)h+='<div class="fb bad">'+bad+' código(s) no válidos o modificados: se han ignorado.</div>';
+  $('#out').innerHTML=h;
+ };
+}
+/* ---------- Retos opcionales: alineación y corriente ---------- */
+var ALIQ=[
+ {q:'¿Cuánta desalineación angular hay en el plano vertical (lecturas a 0° y 180°)?',full:1,ok:0,
+  o:['0,25 mm/100 mm: la lectura a 180° menos la de 0°, sobre un diámetro de lectura de 100 mm','0,125 mm/100 mm: la mitad de la diferencia, porque el comparador mide en radio','0,03 mm/100 mm: la diferencia entre las lecturas a 90° y 270°','0,11 mm/100 mm: la lectura a 90° tomada tal cual'],
+  fb:'Se resta la lectura a 0° de la de 180° y se divide entre el diámetro de lectura: (0,25 − 0,00) ÷ 100 mm = 0,25 mm/100 mm, cinco veces el máximo de 0,05.',
+  dead:{1:['Divides entre dos sin motivo','Das por buena una desalineación de 0,125 mm/100 mm, que sigue siendo más del doble del límite. La corrección se queda corta y el motor sigue forzando los rodamientos. Retrocede.'],
+        2:['Miras el plano equivocado','El plano horizontal (90° y 270°) está casi bien. Corriges lo que no es y dejas el error grande intacto. Retrocede.'],
+        3:['Una lectura aislada no es una desalineación','Un solo valor no da un ángulo: hace falta la diferencia entre posiciones opuestas. Retrocede.']}},
+ {q:'¿Qué corrección corresponde según las cuatro lecturas?',full:1,ok:0,
+  o:['Plano vertical: calzar el motor bajo las patas; el plano horizontal (0,03 mm/100 mm) ya está dentro del máximo de 0,05','Plano horizontal: desplazar lateralmente el motor, porque ahí está el error mayor','Aflojar el acoplamiento y apretarlo de nuevo con el eje girado','Sustituir el acoplamiento por uno más flexible que absorba la desalineación'],
+  fb:'El error está en el plano vertical y se corrige con calzos. El horizontal, con 0,03 mm/100 mm, ya cumple y no se toca.',
+  dead:{1:['Mueves lo que estaba bien','Desplazas el motor de lado y estropeas el plano horizontal sin corregir el vertical. Retrocede.'],
+        2:['Reapretar no alinea','Soltar y apretar el acoplamiento no cambia la posición relativa de los ejes. La desalineación sigue igual. Retrocede.'],
+        3:['Absorber no es corregir','Un acoplamiento más flexible tolera la desalineación, pero los rodamientos siguen recibiendo la carga. Retrocede.']}},
+ {q:'¿Por qué conviene corregir también el casquillo guía y no solo calzar el motor?',full:1,ok:0,
+  o:['Porque el casquillo con holgura desplaza el conjunto bajo carga: se alinearía en frío y la desalineación volvería en pocos ciclos','Porque el casquillo y el acoplamiento son la misma pieza','Porque los calzos solo se pueden colocar con el casquillo desmontado','Porque así se evita tener que medir de nuevo después'],
+  fb:'La alineación en frío no dura si el origen de la desalineación sigue ahí. Calzar sin corregir el casquillo es otro paliativo.',
+  dead:{1:['Confundes las piezas','El casquillo guía está en el carro; el acoplamiento une motor y reductor. Son piezas distintas. Retrocede.'],
+        2:['Inventas una dependencia','Los calzos se colocan bajo las patas del motor, con el casquillo montado o no. Retrocede.'],
+        3:['Medir de nuevo siempre hace falta','Tras cualquier corrección se vuelve a medir con el apriete final. Retrocede.']}}
+];
+var CORQ=[
+ {q:'¿Qué indica que el pico de corriente aparezca siempre en el mismo punto del recorrido del carro?',full:1,ok:0,
+  o:['Algo mecánico roza o aprieta en ese tramo: es una carga localizada, no un fallo eléctrico','El variador está defectuoso y mide mal en esa posición','La tensión de red cae justo en ese momento del ciclo','El motor se calienta al final y por eso consume más'],
+  fb:'Un pico ligado a una posición del recorrido apunta a una causa mecánica. Coincide con el casquillo con holgura que roza.',
+  dead:{1:['Culpas al variador','Lo sustituyes y el pico aparece igual en el mismo punto del recorrido. El variador solo mide lo que le pide el motor. Retrocede.'],
+        2:['Culpas a la red','La tensión de red no sabe en qué posición está el carro. Retrocede.'],
+        3:['Culpas al calentamiento','Un calentamiento sería gradual a lo largo del ciclo, no un pico en un punto fijo. Retrocede.']}},
+ {q:'El operador pide subir la protección de 17 A a 22 A para que deje de saltar. ¿Qué haces?',full:1,ok:0,
+  o:['No la subes: protege el motor, que es de 11 A nominales; subirla oculta el síntoma mientras el daño mecánico continúa','La subes un poco, solo hasta que llegue el repuesto','La subes y compensas con más ventilación del armario','La desactivas durante el turno de noche para no parar'],
+  fb:'La protección es la última defensa del motor. Subirla deja pasar la sobrecarga hasta que algo más caro se rompa.',
+  dead:{1:['Un parche con fecha','Con la protección alta, el motor trabaja sobrecargado y el aislamiento se degrada. Retrocede.'],
+        2:['La ventilación no es el problema','Enfriar el armario no reduce la carga del motor. Retrocede.'],
+        3:['Sin protección no hay red de seguridad','Un motor sobrecargado sin protección puede quemarse en horas. Retrocede.']}},
+ {q:'Tras la reparación, ¿qué esperas ver en el histórico del variador?',full:1,ok:0,
+  o:['Que el pico de par desaparece y la corriente de ciclo se acerca a los 11 A nominales; si reaparece, la causa no está corregida','La misma corriente, pero con la protección más alta','Corriente a cero, porque la línea acaba de arrancar','Picos mayores durante unas semanas, por el rodaje del aceite'],
+  fb:'La tendencia de la corriente de pico por ciclo es el mejor indicador de que la causa raíz se ha corregido.',
+  dead:{1:['Ocultar no es curar','Si la corriente no ha bajado, la causa sigue. Cambiar el ajuste solo cambia el aviso. Retrocede.'],
+        2:['Una línea parada no da lectura','Con la línea en producción la corriente es la del ciclo normal. Retrocede.'],
+        3:['El rodaje no sube la carga','Un aceite nuevo no provoca picos mayores: si los hay, hay sobrecarga mecánica. Retrocede.']}}
+];
+function figCor(){
+ var pts=[],x,y,i;
+ for(i=0;i<=100;i+=2){y=9.6+0.7*Math.sin(i*0.25)+8.1*Math.exp(-Math.pow(i-62,2)/22);pts.push((50+i*5.1).toFixed(1)+','+(190-y*7.2).toFixed(1))}
+ var s='<svg viewBox="0 0 720 230" role="img" aria-label="Corriente del motor frente a la posición del carro, con un pico al 62 %">';
+ s+='<line x1="50" y1="190" x2="560" y2="190" stroke="var(--muted)" stroke-width="1.5"/><line x1="50" y1="20" x2="50" y2="190" stroke="var(--muted)" stroke-width="1.5"/>';
+ s+='<line x1="50" y1="'+(190-11*7.2)+'" x2="560" y2="'+(190-11*7.2)+'" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="6 4"/><text class="lbl s" x="566" y="'+(190-11*7.2+4)+'">11 A nominal</text>';
+ s+='<line x1="50" y1="'+(190-17*7.2)+'" x2="560" y2="'+(190-17*7.2)+'" stroke="var(--alert)" stroke-width="1.5" stroke-dasharray="2 3"/><text class="lbl s" x="566" y="'+(190-17*7.2+4)+'">17 A protección</text>';
+ s+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--fg)" stroke-width="2.5"/>';
+ s+='<text class="lbl s" x="50" y="210">0 %</text><text class="lbl s" x="548" y="210">100 %</text><text class="lbl s" x="305" y="222" text-anchor="middle">posición del carro en el recorrido</text><text class="lbl s" x="8" y="16">A</text></svg>';
+ return fig(s,'Corriente del motor en un ciclo, tomada del histórico del variador. Datos simulados para la actividad.');
+}
+var CHS={
+ ali:{Q:ALIQ,s:'aq',w:'aw',bd:'Alineación',eb:'Estación 2 · Reto del carro: alineación con comparador',h:'Alinea con comparador',
+  pre:function(){return '<p>Montas un comparador de reloj en la cara del acoplamiento (diámetro de lectura: <b>100 mm</b>) y giras el eje para tomar cuatro lecturas. Los valores son simulados para la actividad.</p>'+figAlign()+
+   '<div class="card tbl"><table><tr><th>Posición</th><th class="n">0°</th><th class="n">90°</th><th class="n">180°</th><th class="n">270°</th></tr><tr><td>Lectura del comparador (mm)</td><td class="n">0,00</td><td class="n">0,11</td><td class="n">0,25</td><td class="n">0,14</td></tr></table></div>'+
+   (S.adv?'':'<div class="fb">Desalineación angular = (lectura opuesta − lectura de referencia) ÷ diámetro de lectura. Máximo admisible: 0,05 mm/100 mm. Los pares opuestos son 0°–180° (plano vertical) y 90°–270° (plano horizontal).</div>')}},
+ cor:{Q:CORQ,s:'cq',w:'cw',bd:'Corrientes',eb:'Estación 2 · Reto del variador: corriente y protección',h:'Lo que cuenta el histórico',
+  pre:function(){return '<p>El variador guarda la corriente del motor durante un ciclo. Este es el histórico de esta semana, con la protección ajustada en 17 A. Los valores son simulados para la actividad.</p>'+figCor()}}
+};
+function xtra(){return qPts(ALIQ,S.aq,S.aw)+qPts(CORQ,S.cq,S.cw)}
+function vChal(k){
+ var C=CHS[k],sv=S[C.s],wr=S[C.w],done=sv.every(Boolean);
+ app.innerHTML='<div class="eyebrow">'+C.eb+'</div><h2>'+C.h+'</h2>'+C.pre()+qBlock(C.Q,sv,wr)+'<div id="fb"></div><div class="row">'+(done?'<button class="primary" id="next">Volver al plano de la planta</button>':'<button class="primary" id="chk">Comprobar</button>')+'<button id="bk">Salir sin terminar</button></div>';
+ var c=$('#chk');if(c)c.onclick=function(){
+  var r=qCheck(C.Q,sv,wr);S.sc.xt=xtra();
+  if(sv.every(Boolean))badge(C.bd);
+  if(r.dead){deadEnd(r.dead[0],r.dead[1],60,null);return}
+  render();if(!r.any)$('#fb').innerHTML='<div class="fb">Marca una respuesta en cada pregunta pendiente.</div>';
+ };
+ var n=$('#next');if(n)n.onclick=function(){S.done[k]=true;go('map')};
+ $('#bk').onclick=function(){go('map')};
+}
+
+var M2Q=[
+ {q:'¿Por qué ha reaparecido la avería a las tres semanas?',full:5,ok:0,
+  o:['No se corrigió la causa raíz (holgura del casquillo): las piezas nuevas soportan la misma carga y la misma desalineación',
+     'Los rodamientos nuevos eran de peor calidad y han cedido antes de lo previsto',
+     'El aceite que se repuso no era el adecuado y ha dejado de lubricar el reductor',
+     'El variador ha envejecido y manda más corriente de la necesaria al motor'],
+  fb:'La holgura del casquillo sigue en 0,31 mm y la desalineación ha vuelto a 0,24 mm/100 mm. Cambiar piezas sin corregir esa causa solo reinicia el reloj de la avería.',
+  dead:{1:['Culpas a los rodamientos','Reclamas al proveedor y repones otro juego. A las pocas semanas vuelven a fallar igual: nunca fue un problema de calidad. Retrocede.'],
+        2:['Culpas al aceite','Vacías y rellenas otra vez. El aceite nuevo sube de temperatura en pocas horas porque sigue habiendo sobrecarga. Retrocede.'],
+        3:['Culpas al variador','El variador mide lo que el motor consume: la corriente alta es consecuencia de la desalineación, no su origen. Retrocede.']}},
+ {q:'El aceite nuevo ya tiene 95 ppm de hierro a las tres semanas y 91 °C. ¿Cómo lo interpretas?',full:5,ok:0,
+  o:['El desgaste sigue siendo anormal: el reductor continúa sobrecargado y el aceite nuevo ya se está degradando',
+     'Es el rodaje normal de un aceite recién cambiado y se estabilizará solo',
+     'Hay contaminación del aceite por el recipiente de relleno',
+     'El filtro es demasiado fino y retiene partículas, lo que sube la lectura'],
+  fb:'Un aceite nuevo no acumula hierro a ese ritmo ni llega a 91 °C sin una sobrecarga mecánica. Es la misma huella de la primera avería, ahora más rápida.',
+  dead:{1:['Esperas a que se estabilice','Dejas el aceite en servicio «de rodaje». La temperatura sigue subiendo y el retén nuevo empieza a gotear. Retrocede.'],
+        2:['Culpas al recipiente','Cambias el sistema de relleno y la lectura sigue igual: la fuente del hierro es el propio reductor. Retrocede.'],
+        3:['Culpas al filtro','Cambias el filtro y el análisis sigue dando hierro alto. La causa está en el desgaste, no en la medida. Retrocede.']}},
+ {q:'¿Cuál es ahora la intervención curativa?',full:5,ok:0,
+  o:['Sustituir el casquillo guía, realinear motor y transmisión y revisar los rodamientos nuevos y el aceite',
+     'Volver a cambiar rodamientos y aceite, esta vez con un grado superior de lubricante',
+     'Sustituir el motor y el reductor completos para empezar de cero',
+     'Subir el ajuste de la protección y programar una revisión dentro de seis meses'],
+  fb:'La curativa elimina la causa raíz (casquillo y alineación) y después comprueba lo que ya se haya dañado. Las demás opciones o repiten el paliativo o gastan sin corregir el origen.',
+  dead:{1:['Otro paliativo','Repites el mismo cambio con un lubricante más espeso: más fricción y más calor, y la holgura sigue ahí. Retrocede.'],
+        2:['Un gasto enorme sin corregir la causa','Montas un motor y un reductor nuevos sobre el mismo casquillo con holgura. A las pocas semanas empiezan a degradarse igual. Retrocede.'],
+        3:['Tapas el síntoma','Subir la protección permite que el motor aguante sobrecargado hasta que algo más importante se rompe. Retrocede.']}}
+];
+/* ---------- Puesta en común de propuestas ---------- */
+var __QR=(function(){var M={};function require(n){n=n.replace('./','');return M[n]()}
+var C={};
+M['QR8bitByte']=function(){if(C['QR8bitByte'])return C['QR8bitByte'].exports;var module=C['QR8bitByte']={exports:{}};var exports=module.exports;
+var QRMode = require('./QRMode');
+
+function QR8bitByte(data) {
+	this.mode = QRMode.MODE_8BIT_BYTE;
+	this.data = data;
+}
+
+QR8bitByte.prototype = {
+
+	getLength : function() {
+		return this.data.length;
+	},
+	
+	write : function(buffer) {
+		for (var i = 0; i < this.data.length; i++) {
+			// not JIS ...
+			buffer.put(this.data.charCodeAt(i), 8);
+		}
+	}
+};
+
+module.exports = QR8bitByte;
+
+return module.exports};
+M['QRBitBuffer']=function(){if(C['QRBitBuffer'])return C['QRBitBuffer'].exports;var module=C['QRBitBuffer']={exports:{}};var exports=module.exports;
+function QRBitBuffer() {
+	this.buffer = [];
+	this.length = 0;
+}
+
+QRBitBuffer.prototype = {
+
+	get : function(index) {
+		var bufIndex = Math.floor(index / 8);
+		return ( (this.buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+	},
+	
+	put : function(num, length) {
+		for (var i = 0; i < length; i++) {
+			this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+		}
+	},
+	
+	getLengthInBits : function() {
+		return this.length;
+	},
+	
+	putBit : function(bit) {
+	
+		var bufIndex = Math.floor(this.length / 8);
+		if (this.buffer.length <= bufIndex) {
+			this.buffer.push(0);
+		}
+	
+		if (bit) {
+			this.buffer[bufIndex] |= (0x80 >>> (this.length % 8) );
+		}
+	
+		this.length++;
+	}
+};
+
+module.exports = QRBitBuffer;
+
+return module.exports};
+M['QRErrorCorrectLevel']=function(){if(C['QRErrorCorrectLevel'])return C['QRErrorCorrectLevel'].exports;var module=C['QRErrorCorrectLevel']={exports:{}};var exports=module.exports;
+module.exports = {
+	L : 1,
+	M : 0,
+	Q : 3,
+	H : 2
+};
+
+
+return module.exports};
+M['QRMaskPattern']=function(){if(C['QRMaskPattern'])return C['QRMaskPattern'].exports;var module=C['QRMaskPattern']={exports:{}};var exports=module.exports;
+module.exports = {
+	PATTERN000 : 0,
+	PATTERN001 : 1,
+	PATTERN010 : 2,
+	PATTERN011 : 3,
+	PATTERN100 : 4,
+	PATTERN101 : 5,
+	PATTERN110 : 6,
+	PATTERN111 : 7
+};
+
+return module.exports};
+M['QRMath']=function(){if(C['QRMath'])return C['QRMath'].exports;var module=C['QRMath']={exports:{}};var exports=module.exports;
+var QRMath = {
+
+	glog : function(n) {
+	
+		if (n < 1) {
+			throw new Error("glog(" + n + ")");
+		}
+		
+		return QRMath.LOG_TABLE[n];
+	},
+	
+	gexp : function(n) {
+	
+		while (n < 0) {
+			n += 255;
+		}
+	
+		while (n >= 256) {
+			n -= 255;
+		}
+	
+		return QRMath.EXP_TABLE[n];
+	},
+	
+	EXP_TABLE : new Array(256),
+	
+	LOG_TABLE : new Array(256)
+
+};
+	
+for (var i = 0; i < 8; i++) {
+	QRMath.EXP_TABLE[i] = 1 << i;
+}
+for (var i = 8; i < 256; i++) {
+	QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4]
+		^ QRMath.EXP_TABLE[i - 5]
+		^ QRMath.EXP_TABLE[i - 6]
+		^ QRMath.EXP_TABLE[i - 8];
+}
+for (var i = 0; i < 255; i++) {
+	QRMath.LOG_TABLE[QRMath.EXP_TABLE[i] ] = i;
+}
+
+module.exports = QRMath;
+
+return module.exports};
+M['QRMode']=function(){if(C['QRMode'])return C['QRMode'].exports;var module=C['QRMode']={exports:{}};var exports=module.exports;
+module.exports = {
+    MODE_NUMBER :       1 << 0,
+    MODE_ALPHA_NUM :    1 << 1,
+    MODE_8BIT_BYTE :    1 << 2,
+    MODE_KANJI :        1 << 3
+};
+
+return module.exports};
+M['QRPolynomial']=function(){if(C['QRPolynomial'])return C['QRPolynomial'].exports;var module=C['QRPolynomial']={exports:{}};var exports=module.exports;
+var QRMath = require('./QRMath');
+
+function QRPolynomial(num, shift) {
+	if (num.length === undefined) {
+		throw new Error(num.length + "/" + shift);
+	}
+
+	var offset = 0;
+
+	while (offset < num.length && num[offset] === 0) {
+		offset++;
+	}
+
+	this.num = new Array(num.length - offset + shift);
+	for (var i = 0; i < num.length - offset; i++) {
+		this.num[i] = num[i + offset];
+	}
+}
+
+QRPolynomial.prototype = {
+
+	get : function(index) {
+		return this.num[index];
+	},
+	
+	getLength : function() {
+		return this.num.length;
+	},
+	
+	multiply : function(e) {
+	
+		var num = new Array(this.getLength() + e.getLength() - 1);
+	
+		for (var i = 0; i < this.getLength(); i++) {
+			for (var j = 0; j < e.getLength(); j++) {
+				num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i) ) + QRMath.glog(e.get(j) ) );
+			}
+		}
+	
+		return new QRPolynomial(num, 0);
+	},
+	
+	mod : function(e) {
+	
+		if (this.getLength() - e.getLength() < 0) {
+			return this;
+		}
+	
+		var ratio = QRMath.glog(this.get(0) ) - QRMath.glog(e.get(0) );
+	
+		var num = new Array(this.getLength() );
+		
+		for (var i = 0; i < this.getLength(); i++) {
+			num[i] = this.get(i);
+		}
+		
+		for (var x = 0; x < e.getLength(); x++) {
+			num[x] ^= QRMath.gexp(QRMath.glog(e.get(x) ) + ratio);
+		}
+	
+		// recursive call
+		return new QRPolynomial(num, 0).mod(e);
+	}
+};
+
+module.exports = QRPolynomial;
+
+return module.exports};
+M['QRRSBlock']=function(){if(C['QRRSBlock'])return C['QRRSBlock'].exports;var module=C['QRRSBlock']={exports:{}};var exports=module.exports;
+var QRErrorCorrectLevel = require('./QRErrorCorrectLevel');
+
+function QRRSBlock(totalCount, dataCount) {
+	this.totalCount = totalCount;
+	this.dataCount  = dataCount;
+}
+
+QRRSBlock.RS_BLOCK_TABLE = [
+
+	// L
+	// M
+	// Q
+	// H
+
+	// 1
+	[1, 26, 19],
+	[1, 26, 16],
+	[1, 26, 13],
+	[1, 26, 9],
+	
+	// 2
+	[1, 44, 34],
+	[1, 44, 28],
+	[1, 44, 22],
+	[1, 44, 16],
+
+	// 3
+	[1, 70, 55],
+	[1, 70, 44],
+	[2, 35, 17],
+	[2, 35, 13],
+
+	// 4		
+	[1, 100, 80],
+	[2, 50, 32],
+	[2, 50, 24],
+	[4, 25, 9],
+	
+	// 5
+	[1, 134, 108],
+	[2, 67, 43],
+	[2, 33, 15, 2, 34, 16],
+	[2, 33, 11, 2, 34, 12],
+	
+	// 6
+	[2, 86, 68],
+	[4, 43, 27],
+	[4, 43, 19],
+	[4, 43, 15],
+	
+	// 7		
+	[2, 98, 78],
+	[4, 49, 31],
+	[2, 32, 14, 4, 33, 15],
+	[4, 39, 13, 1, 40, 14],
+	
+	// 8
+	[2, 121, 97],
+	[2, 60, 38, 2, 61, 39],
+	[4, 40, 18, 2, 41, 19],
+	[4, 40, 14, 2, 41, 15],
+	
+	// 9
+	[2, 146, 116],
+	[3, 58, 36, 2, 59, 37],
+	[4, 36, 16, 4, 37, 17],
+	[4, 36, 12, 4, 37, 13],
+	
+	// 10		
+	[2, 86, 68, 2, 87, 69],
+	[4, 69, 43, 1, 70, 44],
+	[6, 43, 19, 2, 44, 20],
+	[6, 43, 15, 2, 44, 16],
+
+	// 11
+	[4, 101, 81],
+	[1, 80, 50, 4, 81, 51],
+	[4, 50, 22, 4, 51, 23],
+	[3, 36, 12, 8, 37, 13],
+
+	// 12
+	[2, 116, 92, 2, 117, 93],
+	[6, 58, 36, 2, 59, 37],
+	[4, 46, 20, 6, 47, 21],
+	[7, 42, 14, 4, 43, 15],
+
+	// 13
+	[4, 133, 107],
+	[8, 59, 37, 1, 60, 38],
+	[8, 44, 20, 4, 45, 21],
+	[12, 33, 11, 4, 34, 12],
+
+	// 14
+	[3, 145, 115, 1, 146, 116],
+	[4, 64, 40, 5, 65, 41],
+	[11, 36, 16, 5, 37, 17],
+	[11, 36, 12, 5, 37, 13],
+
+	// 15
+	[5, 109, 87, 1, 110, 88],
+	[5, 65, 41, 5, 66, 42],
+	[5, 54, 24, 7, 55, 25],
+	[11, 36, 12],
+
+	// 16
+	[5, 122, 98, 1, 123, 99],
+	[7, 73, 45, 3, 74, 46],
+	[15, 43, 19, 2, 44, 20],
+	[3, 45, 15, 13, 46, 16],
+
+	// 17
+	[1, 135, 107, 5, 136, 108],
+	[10, 74, 46, 1, 75, 47],
+	[1, 50, 22, 15, 51, 23],
+	[2, 42, 14, 17, 43, 15],
+
+	// 18
+	[5, 150, 120, 1, 151, 121],
+	[9, 69, 43, 4, 70, 44],
+	[17, 50, 22, 1, 51, 23],
+	[2, 42, 14, 19, 43, 15],
+
+	// 19
+	[3, 141, 113, 4, 142, 114],
+	[3, 70, 44, 11, 71, 45],
+	[17, 47, 21, 4, 48, 22],
+	[9, 39, 13, 16, 40, 14],
+
+	// 20
+	[3, 135, 107, 5, 136, 108],
+	[3, 67, 41, 13, 68, 42],
+	[15, 54, 24, 5, 55, 25],
+	[15, 43, 15, 10, 44, 16],
+
+	// 21
+	[4, 144, 116, 4, 145, 117],
+	[17, 68, 42],
+	[17, 50, 22, 6, 51, 23],
+	[19, 46, 16, 6, 47, 17],
+
+	// 22
+	[2, 139, 111, 7, 140, 112],
+	[17, 74, 46],
+	[7, 54, 24, 16, 55, 25],
+	[34, 37, 13],
+
+	// 23
+	[4, 151, 121, 5, 152, 122],
+	[4, 75, 47, 14, 76, 48],
+	[11, 54, 24, 14, 55, 25],
+	[16, 45, 15, 14, 46, 16],
+
+	// 24
+	[6, 147, 117, 4, 148, 118],
+	[6, 73, 45, 14, 74, 46],
+	[11, 54, 24, 16, 55, 25],
+	[30, 46, 16, 2, 47, 17],
+
+	// 25
+	[8, 132, 106, 4, 133, 107],
+	[8, 75, 47, 13, 76, 48],
+	[7, 54, 24, 22, 55, 25],
+	[22, 45, 15, 13, 46, 16],
+
+	// 26
+	[10, 142, 114, 2, 143, 115],
+	[19, 74, 46, 4, 75, 47],
+	[28, 50, 22, 6, 51, 23],
+	[33, 46, 16, 4, 47, 17],
+
+	// 27
+	[8, 152, 122, 4, 153, 123],
+	[22, 73, 45, 3, 74, 46],
+	[8, 53, 23, 26, 54, 24],
+	[12, 45, 15, 28, 46, 16],
+
+	// 28
+	[3, 147, 117, 10, 148, 118],
+	[3, 73, 45, 23, 74, 46],
+	[4, 54, 24, 31, 55, 25],
+	[11, 45, 15, 31, 46, 16],
+
+	// 29
+	[7, 146, 116, 7, 147, 117],
+	[21, 73, 45, 7, 74, 46],
+	[1, 53, 23, 37, 54, 24],
+	[19, 45, 15, 26, 46, 16],
+
+	// 30
+	[5, 145, 115, 10, 146, 116],
+	[19, 75, 47, 10, 76, 48],
+	[15, 54, 24, 25, 55, 25],
+	[23, 45, 15, 25, 46, 16],
+
+	// 31
+	[13, 145, 115, 3, 146, 116],
+	[2, 74, 46, 29, 75, 47],
+	[42, 54, 24, 1, 55, 25],
+	[23, 45, 15, 28, 46, 16],
+
+	// 32
+	[17, 145, 115],
+	[10, 74, 46, 23, 75, 47],
+	[10, 54, 24, 35, 55, 25],
+	[19, 45, 15, 35, 46, 16],
+
+	// 33
+	[17, 145, 115, 1, 146, 116],
+	[14, 74, 46, 21, 75, 47],
+	[29, 54, 24, 19, 55, 25],
+	[11, 45, 15, 46, 46, 16],
+
+	// 34
+	[13, 145, 115, 6, 146, 116],
+	[14, 74, 46, 23, 75, 47],
+	[44, 54, 24, 7, 55, 25],
+	[59, 46, 16, 1, 47, 17],
+
+	// 35
+	[12, 151, 121, 7, 152, 122],
+	[12, 75, 47, 26, 76, 48],
+	[39, 54, 24, 14, 55, 25],
+	[22, 45, 15, 41, 46, 16],
+
+	// 36
+	[6, 151, 121, 14, 152, 122],
+	[6, 75, 47, 34, 76, 48],
+	[46, 54, 24, 10, 55, 25],
+	[2, 45, 15, 64, 46, 16],
+
+	// 37
+	[17, 152, 122, 4, 153, 123],
+	[29, 74, 46, 14, 75, 47],
+	[49, 54, 24, 10, 55, 25],
+	[24, 45, 15, 46, 46, 16],
+
+	// 38
+	[4, 152, 122, 18, 153, 123],
+	[13, 74, 46, 32, 75, 47],
+	[48, 54, 24, 14, 55, 25],
+	[42, 45, 15, 32, 46, 16],
+
+	// 39
+	[20, 147, 117, 4, 148, 118],
+	[40, 75, 47, 7, 76, 48],
+	[43, 54, 24, 22, 55, 25],
+	[10, 45, 15, 67, 46, 16],
+
+	// 40
+	[19, 148, 118, 6, 149, 119],
+	[18, 75, 47, 31, 76, 48],
+	[34, 54, 24, 34, 55, 25],
+	[20, 45, 15, 61, 46, 16]
+];
+
+QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+	
+	var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+	
+	if (rsBlock === undefined) {
+		throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + errorCorrectLevel);
+	}
+
+	var length = rsBlock.length / 3;
+	
+	var list = [];
+	
+	for (var i = 0; i < length; i++) {
+
+		var count = rsBlock[i * 3 + 0];
+		var totalCount = rsBlock[i * 3 + 1];
+		var dataCount  = rsBlock[i * 3 + 2];
+
+		for (var j = 0; j < count; j++) {
+			list.push(new QRRSBlock(totalCount, dataCount) );	
+		}
+	}
+	
+	return list;
+};
+
+QRRSBlock.getRsBlockTable = function(typeNumber, errorCorrectLevel) {
+
+	switch(errorCorrectLevel) {
+	case QRErrorCorrectLevel.L :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+	case QRErrorCorrectLevel.M :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+	case QRErrorCorrectLevel.Q :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+	case QRErrorCorrectLevel.H :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+	default :
+		return undefined;
+	}
+};
+
+module.exports = QRRSBlock;
+
+return module.exports};
+M['QRUtil']=function(){if(C['QRUtil'])return C['QRUtil'].exports;var module=C['QRUtil']={exports:{}};var exports=module.exports;
+var QRMode = require('./QRMode');
+var QRPolynomial = require('./QRPolynomial');
+var QRMath = require('./QRMath');
+var QRMaskPattern = require('./QRMaskPattern');
+
+var QRUtil = {
+
+    PATTERN_POSITION_TABLE : [
+        [],
+        [6, 18],
+        [6, 22],
+        [6, 26],
+        [6, 30],
+        [6, 34],
+        [6, 22, 38],
+        [6, 24, 42],
+        [6, 26, 46],
+        [6, 28, 50],
+        [6, 30, 54],        
+        [6, 32, 58],
+        [6, 34, 62],
+        [6, 26, 46, 66],
+        [6, 26, 48, 70],
+        [6, 26, 50, 74],
+        [6, 30, 54, 78],
+        [6, 30, 56, 82],
+        [6, 30, 58, 86],
+        [6, 34, 62, 90],
+        [6, 28, 50, 72, 94],
+        [6, 26, 50, 74, 98],
+        [6, 30, 54, 78, 102],
+        [6, 28, 54, 80, 106],
+        [6, 32, 58, 84, 110],
+        [6, 30, 58, 86, 114],
+        [6, 34, 62, 90, 118],
+        [6, 26, 50, 74, 98, 122],
+        [6, 30, 54, 78, 102, 126],
+        [6, 26, 52, 78, 104, 130],
+        [6, 30, 56, 82, 108, 134],
+        [6, 34, 60, 86, 112, 138],
+        [6, 30, 58, 86, 114, 142],
+        [6, 34, 62, 90, 118, 146],
+        [6, 30, 54, 78, 102, 126, 150],
+        [6, 24, 50, 76, 102, 128, 154],
+        [6, 28, 54, 80, 106, 132, 158],
+        [6, 32, 58, 84, 110, 136, 162],
+        [6, 26, 54, 82, 110, 138, 166],
+        [6, 30, 58, 86, 114, 142, 170]
+    ],
+
+    G15 : (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+    G18 : (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0),
+    G15_MASK : (1 << 14) | (1 << 12) | (1 << 10)    | (1 << 4) | (1 << 1),
+
+    getBCHTypeInfo : function(data) {
+        var d = data << 10;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+            d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) ) );    
+        }
+        return ( (data << 10) | d) ^ QRUtil.G15_MASK;
+    },
+
+    getBCHTypeNumber : function(data) {
+        var d = data << 12;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+            d ^= (QRUtil.G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) ) );    
+        }
+        return (data << 12) | d;
+    },
+
+    getBCHDigit : function(data) {
+
+        var digit = 0;
+
+        while (data !== 0) {
+            digit++;
+            data >>>= 1;
+        }
+
+        return digit;
+    },
+
+    getPatternPosition : function(typeNumber) {
+        return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+    },
+
+    getMask : function(maskPattern, i, j) {
+        
+        switch (maskPattern) {
+            
+        case QRMaskPattern.PATTERN000 : return (i + j) % 2 === 0;
+        case QRMaskPattern.PATTERN001 : return i % 2 === 0;
+        case QRMaskPattern.PATTERN010 : return j % 3 === 0;
+        case QRMaskPattern.PATTERN011 : return (i + j) % 3 === 0;
+        case QRMaskPattern.PATTERN100 : return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 === 0;
+        case QRMaskPattern.PATTERN101 : return (i * j) % 2 + (i * j) % 3 === 0;
+        case QRMaskPattern.PATTERN110 : return ( (i * j) % 2 + (i * j) % 3) % 2 === 0;
+        case QRMaskPattern.PATTERN111 : return ( (i * j) % 3 + (i + j) % 2) % 2 === 0;
+
+        default :
+            throw new Error("bad maskPattern:" + maskPattern);
+        }
+    },
+
+    getErrorCorrectPolynomial : function(errorCorrectLength) {
+
+        var a = new QRPolynomial([1], 0);
+
+        for (var i = 0; i < errorCorrectLength; i++) {
+            a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0) );
+        }
+
+        return a;
+    },
+
+    getLengthInBits : function(mode, type) {
+
+        if (1 <= type && type < 10) {
+
+            // 1 - 9
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 10;
+            case QRMode.MODE_ALPHA_NUM  : return 9;
+            case QRMode.MODE_8BIT_BYTE  : return 8;
+            case QRMode.MODE_KANJI      : return 8;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 27) {
+
+            // 10 - 26
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 12;
+            case QRMode.MODE_ALPHA_NUM  : return 11;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 10;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 41) {
+
+            // 27 - 40
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 14;
+            case QRMode.MODE_ALPHA_NUM  : return 13;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 12;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else {
+            throw new Error("type:" + type);
+        }
+    },
+
+    getLostPoint : function(qrCode) {
+        
+        var moduleCount = qrCode.getModuleCount();
+        var lostPoint = 0;
+        var row = 0; 
+        var col = 0;
+
+        
+        // LEVEL1
+        
+        for (row = 0; row < moduleCount; row++) {
+
+            for (col = 0; col < moduleCount; col++) {
+
+                var sameCount = 0;
+                var dark = qrCode.isDark(row, col);
+
+                for (var r = -1; r <= 1; r++) {
+
+                    if (row + r < 0 || moduleCount <= row + r) {
+                        continue;
+                    }
+
+                    for (var c = -1; c <= 1; c++) {
+
+                        if (col + c < 0 || moduleCount <= col + c) {
+                            continue;
+                        }
+
+                        if (r === 0 && c === 0) {
+                            continue;
+                        }
+
+                        if (dark === qrCode.isDark(row + r, col + c) ) {
+                            sameCount++;
+                        }
+                    }
+                }
+
+                if (sameCount > 5) {
+                    lostPoint += (3 + sameCount - 5);
+                }
+            }
+        }
+
+        // LEVEL2
+
+        for (row = 0; row < moduleCount - 1; row++) {
+            for (col = 0; col < moduleCount - 1; col++) {
+                var count = 0;
+                if (qrCode.isDark(row,     col    ) ) count++;
+                if (qrCode.isDark(row + 1, col    ) ) count++;
+                if (qrCode.isDark(row,     col + 1) ) count++;
+                if (qrCode.isDark(row + 1, col + 1) ) count++;
+                if (count === 0 || count === 4) {
+                    lostPoint += 3;
+                }
+            }
+        }
+
+        // LEVEL3
+
+        for (row = 0; row < moduleCount; row++) {
+            for (col = 0; col < moduleCount - 6; col++) {
+                if (qrCode.isDark(row, col) && 
+                        !qrCode.isDark(row, col + 1) && 
+                         qrCode.isDark(row, col + 2) && 
+                         qrCode.isDark(row, col + 3) && 
+                         qrCode.isDark(row, col + 4) && 
+                        !qrCode.isDark(row, col + 5) && 
+                         qrCode.isDark(row, col + 6) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount - 6; row++) {
+                if (qrCode.isDark(row, col) &&
+                        !qrCode.isDark(row + 1, col) &&
+                         qrCode.isDark(row + 2, col) &&
+                         qrCode.isDark(row + 3, col) &&
+                         qrCode.isDark(row + 4, col) &&
+                        !qrCode.isDark(row + 5, col) &&
+                         qrCode.isDark(row + 6, col) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        // LEVEL4
+        
+        var darkCount = 0;
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount; row++) {
+                if (qrCode.isDark(row, col) ) {
+                    darkCount++;
+                }
+            }
+        }
+        
+        var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+        lostPoint += ratio * 10;
+
+        return lostPoint;       
+    }
+
+};
+
+module.exports = QRUtil;
+
+return module.exports};
+M['index']=function(){if(C['index'])return C['index'].exports;var module=C['index']={exports:{}};var exports=module.exports;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var QR8bitByte = require('./QR8bitByte');
+var QRUtil = require('./QRUtil');
+var QRPolynomial = require('./QRPolynomial');
+var QRRSBlock = require('./QRRSBlock');
+var QRBitBuffer = require('./QRBitBuffer');
+
+function QRCode(typeNumber, errorCorrectLevel) {
+	this.typeNumber = typeNumber;
+	this.errorCorrectLevel = errorCorrectLevel;
+	this.modules = null;
+	this.moduleCount = 0;
+	this.dataCache = null;
+	this.dataList = [];
+}
+
+QRCode.prototype = {
+	
+	addData : function(data) {
+		var newData = new QR8bitByte(data);
+		this.dataList.push(newData);
+		this.dataCache = null;
+	},
+	
+	isDark : function(row, col) {
+		if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+			throw new Error(row + "," + col);
+		}
+		return this.modules[row][col];
+	},
+
+	getModuleCount : function() {
+		return this.moduleCount;
+	},
+	
+	make : function() {
+		// Calculate automatically typeNumber if provided is < 1
+		if (this.typeNumber < 1 ){
+			var typeNumber = 1;
+			for (typeNumber = 1; typeNumber < 40; typeNumber++) {
+				var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, this.errorCorrectLevel);
+
+				var buffer = new QRBitBuffer();
+				var totalDataCount = 0;
+				for (var i = 0; i < rsBlocks.length; i++) {
+					totalDataCount += rsBlocks[i].dataCount;
+				}
+
+				for (var x = 0; x < this.dataList.length; x++) {
+					var data = this.dataList[x];
+					buffer.put(data.mode, 4);
+					buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+					data.write(buffer);
+				}
+				if (buffer.getLengthInBits() <= totalDataCount * 8)
+					break;
+			}
+			this.typeNumber = typeNumber;
+		}
+		this.makeImpl(false, this.getBestMaskPattern() );
+	},
+	
+	makeImpl : function(test, maskPattern) {
+		
+		this.moduleCount = this.typeNumber * 4 + 17;
+		this.modules = new Array(this.moduleCount);
+		
+		for (var row = 0; row < this.moduleCount; row++) {
+			
+			this.modules[row] = new Array(this.moduleCount);
+			
+			for (var col = 0; col < this.moduleCount; col++) {
+				this.modules[row][col] = null;//(col + row) % 3;
+			}
+		}
+	
+		this.setupPositionProbePattern(0, 0);
+		this.setupPositionProbePattern(this.moduleCount - 7, 0);
+		this.setupPositionProbePattern(0, this.moduleCount - 7);
+		this.setupPositionAdjustPattern();
+		this.setupTimingPattern();
+		this.setupTypeInfo(test, maskPattern);
+		
+		if (this.typeNumber >= 7) {
+			this.setupTypeNumber(test);
+		}
+	
+		if (this.dataCache === null) {
+			this.dataCache = QRCode.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+		}
+	
+		this.mapData(this.dataCache, maskPattern);
+	},
+
+	setupPositionProbePattern : function(row, col)  {
+		
+		for (var r = -1; r <= 7; r++) {
+			
+			if (row + r <= -1 || this.moduleCount <= row + r) continue;
+			
+			for (var c = -1; c <= 7; c++) {
+				
+				if (col + c <= -1 || this.moduleCount <= col + c) continue;
+				
+				if ( (0 <= r && r <= 6 && (c === 0 || c === 6) ) || 
+                     (0 <= c && c <= 6 && (r === 0 || r === 6) ) || 
+                     (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+					this.modules[row + r][col + c] = true;
+				} else {
+					this.modules[row + r][col + c] = false;
+				}
+			}		
+		}		
+	},
+	
+	getBestMaskPattern : function() {
+	
+		var minLostPoint = 0;
+		var pattern = 0;
+	
+		for (var i = 0; i < 8; i++) {
+			
+			this.makeImpl(true, i);
+	
+			var lostPoint = QRUtil.getLostPoint(this);
+	
+			if (i === 0 || minLostPoint >  lostPoint) {
+				minLostPoint = lostPoint;
+				pattern = i;
+			}
+		}
+	
+		return pattern;
+	},
+	
+	createMovieClip : function(target_mc, instance_name, depth) {
+	
+		var qr_mc = target_mc.createEmptyMovieClip(instance_name, depth);
+		var cs = 1;
+	
+		this.make();
+
+		for (var row = 0; row < this.modules.length; row++) {
+			
+			var y = row * cs;
+			
+			for (var col = 0; col < this.modules[row].length; col++) {
+	
+				var x = col * cs;
+				var dark = this.modules[row][col];
+			
+				if (dark) {
+					qr_mc.beginFill(0, 100);
+					qr_mc.moveTo(x, y);
+					qr_mc.lineTo(x + cs, y);
+					qr_mc.lineTo(x + cs, y + cs);
+					qr_mc.lineTo(x, y + cs);
+					qr_mc.endFill();
+				}
+			}
+		}
+		
+		return qr_mc;
+	},
+
+	setupTimingPattern : function() {
+		
+		for (var r = 8; r < this.moduleCount - 8; r++) {
+			if (this.modules[r][6] !== null) {
+				continue;
+			}
+			this.modules[r][6] = (r % 2 === 0);
+		}
+	
+		for (var c = 8; c < this.moduleCount - 8; c++) {
+			if (this.modules[6][c] !== null) {
+				continue;
+			}
+			this.modules[6][c] = (c % 2 === 0);
+		}
+	},
+	
+	setupPositionAdjustPattern : function() {
+	
+		var pos = QRUtil.getPatternPosition(this.typeNumber);
+		
+		for (var i = 0; i < pos.length; i++) {
+		
+			for (var j = 0; j < pos.length; j++) {
+			
+				var row = pos[i];
+				var col = pos[j];
+				
+				if (this.modules[row][col] !== null) {
+					continue;
+				}
+				
+				for (var r = -2; r <= 2; r++) {
+				
+					for (var c = -2; c <= 2; c++) {
+					
+						if (Math.abs(r) === 2 || 
+                            Math.abs(c) === 2 ||
+                            (r === 0 && c === 0) ) {
+							this.modules[row + r][col + c] = true;
+						} else {
+							this.modules[row + r][col + c] = false;
+						}
+					}
+				}
+			}
+		}
+	},
+	
+	setupTypeNumber : function(test) {
+	
+		var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+        var mod;
+	
+		for (var i = 0; i < 18; i++) {
+			mod = (!test && ( (bits >> i) & 1) === 1);
+			this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+		}
+	
+		for (var x = 0; x < 18; x++) {
+			mod = (!test && ( (bits >> x) & 1) === 1);
+			this.modules[x % 3 + this.moduleCount - 8 - 3][Math.floor(x / 3)] = mod;
+		}
+	},
+	
+	setupTypeInfo : function(test, maskPattern) {
+	
+		var data = (this.errorCorrectLevel << 3) | maskPattern;
+		var bits = QRUtil.getBCHTypeInfo(data);
+        var mod;
+	
+		// vertical		
+		for (var v = 0; v < 15; v++) {
+	
+			mod = (!test && ( (bits >> v) & 1) === 1);
+	
+			if (v < 6) {
+				this.modules[v][8] = mod;
+			} else if (v < 8) {
+				this.modules[v + 1][8] = mod;
+			} else {
+				this.modules[this.moduleCount - 15 + v][8] = mod;
+			}
+		}
+	
+		// horizontal
+		for (var h = 0; h < 15; h++) {
+	
+			mod = (!test && ( (bits >> h) & 1) === 1);
+			
+			if (h < 8) {
+				this.modules[8][this.moduleCount - h - 1] = mod;
+			} else if (h < 9) {
+				this.modules[8][15 - h - 1 + 1] = mod;
+			} else {
+				this.modules[8][15 - h - 1] = mod;
+			}
+		}
+	
+		// fixed module
+		this.modules[this.moduleCount - 8][8] = (!test);
+	
+	},
+	
+	mapData : function(data, maskPattern) {
+		
+		var inc = -1;
+		var row = this.moduleCount - 1;
+		var bitIndex = 7;
+		var byteIndex = 0;
+		
+		for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+	
+			if (col === 6) col--;
+	
+			while (true) {
+	
+				for (var c = 0; c < 2; c++) {
+					
+					if (this.modules[row][col - c] === null) {
+						
+						var dark = false;
+	
+						if (byteIndex < data.length) {
+							dark = ( ( (data[byteIndex] >>> bitIndex) & 1) === 1);
+						}
+	
+						var mask = QRUtil.getMask(maskPattern, row, col - c);
+	
+						if (mask) {
+							dark = !dark;
+						}
+						
+						this.modules[row][col - c] = dark;
+						bitIndex--;
+	
+						if (bitIndex === -1) {
+							byteIndex++;
+							bitIndex = 7;
+						}
+					}
+				}
+								
+				row += inc;
+	
+				if (row < 0 || this.moduleCount <= row) {
+					row -= inc;
+					inc = -inc;
+					break;
+				}
+			}
+		}
+		
+	}
+
+};
+
+QRCode.PAD0 = 0xEC;
+QRCode.PAD1 = 0x11;
+
+QRCode.createData = function(typeNumber, errorCorrectLevel, dataList) {
+	
+	var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+	
+	var buffer = new QRBitBuffer();
+	
+	for (var i = 0; i < dataList.length; i++) {
+		var data = dataList[i];
+		buffer.put(data.mode, 4);
+		buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+		data.write(buffer);
+	}
+
+	// calc num max data.
+	var totalDataCount = 0;
+	for (var x = 0; x < rsBlocks.length; x++) {
+		totalDataCount += rsBlocks[x].dataCount;
+	}
+
+	if (buffer.getLengthInBits() > totalDataCount * 8) {
+		throw new Error("code length overflow. (" + 
+            buffer.getLengthInBits() + 
+            ">" +  
+            totalDataCount * 8 + 
+            ")");
+	}
+
+	// end code
+	if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+		buffer.put(0, 4);
+	}
+
+	// padding
+	while (buffer.getLengthInBits() % 8 !== 0) {
+		buffer.putBit(false);
+	}
+
+	// padding
+	while (true) {
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD0, 8);
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD1, 8);
+	}
+
+	return QRCode.createBytes(buffer, rsBlocks);
+};
+
+QRCode.createBytes = function(buffer, rsBlocks) {
+
+	var offset = 0;
+	
+	var maxDcCount = 0;
+	var maxEcCount = 0;
+	
+	var dcdata = new Array(rsBlocks.length);
+	var ecdata = new Array(rsBlocks.length);
+	
+	for (var r = 0; r < rsBlocks.length; r++) {
+
+		var dcCount = rsBlocks[r].dataCount;
+		var ecCount = rsBlocks[r].totalCount - dcCount;
+
+		maxDcCount = Math.max(maxDcCount, dcCount);
+		maxEcCount = Math.max(maxEcCount, ecCount);
+		
+		dcdata[r] = new Array(dcCount);
+		
+		for (var i = 0; i < dcdata[r].length; i++) {
+			dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+		}
+		offset += dcCount;
+		
+		var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+		var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+		var modPoly = rawPoly.mod(rsPoly);
+		ecdata[r] = new Array(rsPoly.getLength() - 1);
+		for (var x = 0; x < ecdata[r].length; x++) {
+            var modIndex = x + modPoly.getLength() - ecdata[r].length;
+			ecdata[r][x] = (modIndex >= 0)? modPoly.get(modIndex) : 0;
+		}
+
+	}
+	
+	var totalCodeCount = 0;
+	for (var y = 0; y < rsBlocks.length; y++) {
+		totalCodeCount += rsBlocks[y].totalCount;
+	}
+
+	var data = new Array(totalCodeCount);
+	var index = 0;
+
+	for (var z = 0; z < maxDcCount; z++) {
+		for (var s = 0; s < rsBlocks.length; s++) {
+			if (z < dcdata[s].length) {
+				data[index++] = dcdata[s][z];
+			}
+		}
+	}
+
+	for (var xx = 0; xx < maxEcCount; xx++) {
+		for (var t = 0; t < rsBlocks.length; t++) {
+			if (xx < ecdata[t].length) {
+				data[index++] = ecdata[t][xx];
+			}
+		}
+	}
+
+	return data;
+
+};
+
+module.exports = QRCode;
+
+return module.exports};
+return M['index']()})();
+
+/* ---------- QR de la actividad ---------- */
+var QR_URL='https://claude.ai/artifact/S1gpW2ey4gTHgBScH1sdfm';
+function qrSvg(text,px){
+ var q=new __QR(-1,0);q.addData(text);q.make();var n=q.getModuleCount(),m=4,sz=n+2*m,d='';
+ for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+m)+' '+(r+m)+'h1v1h-1z';
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+sz+' '+sz+'" width="'+px+'" height="'+px+'" shape-rendering="crispEdges" role="img" aria-label="Código QR de la actividad"><rect width="'+sz+'" height="'+sz+'" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>';
+}
+function vQR(){
+ var u=QR_URL;try{u=localStorage.getItem('lp_qrurl')||QR_URL}catch(e){}
+ app.innerHTML='<div class="eyebrow">Compartir la actividad</div><h2>Código QR</h2><p>Proyéctalo, imprímelo o haz una captura de pantalla: los alumnos lo escanean con el móvil y abren el juego. El QR se genera aquí, sin internet. Si alojas el juego en otra dirección, cámbiala y vuelve a generarlo.</p><div class="card"><label class="sim" for="qu">Dirección del juego</label><input id="qu" value="'+esc(u)+'" style="font:inherit;padding:8px;width:100%;box-sizing:border-box;margin:4px 0 10px"><div class="row"><button class="primary" id="qg">Generar QR</button><button id="qp">Imprimir</button><button id="qb">Volver</button></div><div id="qo" style="margin-top:14px;text-align:center"></div></div>';
+ var draw=function(){var v=$('#qu').value.trim();if(!v){$('#qo').innerHTML='<div class="fb">Escribe la dirección.</div>';return}
+  try{localStorage.setItem('lp_qrurl',v)}catch(e){}
+  try{$('#qo').innerHTML='<div style="display:inline-block;background:#fff;padding:8px;border:1px solid var(--line)">'+qrSvg(v,320)+'</div><p class="sim" style="word-break:break-all">'+esc(v)+'</p>'}catch(e){$('#qo').innerHTML='<div class="fb bad">La dirección es demasiado larga para un QR.</div>'}};
+ draw();
+ $('#qg').onclick=draw;
+ $('#qp').onclick=function(){window.print()};
+ $('#qb').onclick=function(){go(PROFILE.nick?'intro':'profile')};
+}
+function tok(pre,obj){var p=JSON.stringify(obj);return pre+'-'+btoa(unescape(encodeURIComponent(p)))+'-'+hash32(p+'|ef07')}
+function untok(pre,c){try{var m=new RegExp('^'+pre+'-([A-Za-z0-9+/=]+)-([0-9a-f]{8})$').exec(String(c).trim());if(!m)return null;var p=decodeURIComponent(escape(atob(m[1])));if(hash32(p+'|ef07')!==m[2])return null;return JSON.parse(p)}catch(e){return null}}
+function copyEl(el,fbEl){try{navigator.clipboard.writeText(el.value).then(function(){fbEl.innerHTML='<div class="fb good">Copiado.</div>'},function(){el.select();fbEl.innerHTML='<div class="fb">Selecciona el texto y cópialo con Ctrl+C.</div>'})}catch(e){el.select();fbEl.innerHTML='<div class="fb">Selecciona el texto y cópialo con Ctrl+C.</div>'}}
+var CRIT=['Eficacia: evita averías o mejora el diagnóstico o el mantenimiento','Viabilidad: es realista en coste y en técnica','Claridad: explica qué problema resuelve'];
+var NIV=['','1 · Insuficiente','2 · Mejorable','3 · Adecuado','4 · Excelente'];
+function ownLines(){return S.m3own.split(/\n+/).map(function(x){return x.trim().slice(0,160)}).filter(Boolean).slice(0,6)}
+function ownCodeHtml(){
+ var L=ownLines();
+ if(!L.length)return '<p style="font-size:14px;color:var(--muted)">No has añadido mejoras propias, así que no tienes propuestas que llevar a la puesta en común.</p>';
+ return '<h3>Tu código de propuestas</h3><p style="font-size:14px;color:var(--muted)">Para la puesta en común: entrega este código a tu profesor/a. Él o ella reúne las propuestas de toda la clase y las reparte para valorarlas.</p><textarea class="sheet" id="pcode" readonly rows="3">'+esc(tok('LPP',{n:PROFILE.nick,p:L}))+'</textarea><div class="row"><button id="cpp">Copiar código de propuestas</button></div><div id="pfb"></div>';
+}
+function ownCodeWire(){var b=$('#cpp');if(b)b.onclick=function(){copyEl($('#pcode'),$('#pfb'))}}
+var PCS={list:[],r:{}};
+function critSel(id,k,val){return '<label class="sim" style="display:block;margin:6px 0 2px">'+esc(CRIT[k])+'</label><select data-id="'+id+'" data-k="'+k+'" style="font:inherit;padding:6px;max-width:100%">'+NIV.map(function(t,i){return '<option value="'+i+'"'+(+val===i?' selected':'')+'>'+(i?t:'Elige…')+'</option>'}).join('')+'</select>'}
+function vPC(){
+ app.innerHTML='<div class="eyebrow">Puesta en común</div><h2>Valora las propuestas de la clase</h2><p>Tu profesor/a te dará la lista de propuestas de mejora de todos los equipos. Pégala aquí, valora cada una (también las tuyas) con tres criterios y entrega tu código de valoración. Se valora la idea, no a quien la propuso.</p>'+
+ '<div class="card"><label class="sim" for="nk">Tu nick</label><br><input id="nk" maxlength="16" value="'+esc(PROFILE.nick)+'" style="font:inherit;padding:8px;margin:4px 0 10px"><label class="sim" for="lst">Lista de propuestas (código LPL…)</label><textarea class="sheet" id="lst" rows="3" placeholder="LPL-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="ld">Cargar propuestas</button><button id="bk">Volver</button></div><div id="fb"></div></div><div id="area"></div>';
+ $('#bk').onclick=function(){go(PROFILE.nick?'intro':'profile')};
+ $('#ld').onclick=function(){
+  var d=untok('LPL',$('#lst').value),nk=$('#nk').value.trim();
+  if(!d||!d.length){$('#fb').innerHTML='<div class="fb bad">El código no es válido o ha sido modificado.</div>';return}
+  if(!nk){$('#fb').innerHTML='<div class="fb">Escribe tu nick: sirve para marcar tus propuestas.</div>';return}
+  PCS.list=d;PCS.r={};$('#fb').innerHTML='';
+  $('#area').innerHTML=d.map(function(x){var mine=String(x[1]).toLowerCase()===nk.toLowerCase();return '<div class="card"><b>'+esc(x[0])+'</b>'+(mine?' <span class="badge">tuya</span>':'')+'<p style="margin:6px 0">'+esc(x[2])+'</p>'+[0,1,2].map(function(k){return critSel(x[0],k,0)}).join('')+'</div>'}).join('')+'<div id="fb2"></div><div class="row"><button class="primary" id="mkv">Generar mi código de valoración</button></div><div id="vout"></div>';
+  $('#area').querySelectorAll('select').forEach(function(sel){sel.onchange=function(){var r=PCS.r[sel.dataset.id]=PCS.r[sel.dataset.id]||[0,0,0];r[+sel.dataset.k]=+sel.value}});
+  $('#mkv').onclick=function(){
+   var miss=PCS.list.filter(function(x){var r=PCS.r[x[0]];return !r||r.some(function(v){return !v})});
+   if(miss.length){$('#fb2').innerHTML='<div class="fb">Te faltan criterios por valorar en: '+miss.map(function(x){return esc(x[0])}).join(', ')+'.</div>';return}
+   $('#fb2').innerHTML='';
+   $('#vout').innerHTML='<h3>Tu código de valoración</h3><textarea class="sheet" id="vc" readonly rows="3">'+esc(tok('LPV',{n:nk,r:PCS.r}))+'</textarea><div class="row"><button id="cpv">Copiar código de valoración</button></div><div id="vfb"></div>';
+   $('#cpv').onclick=function(){copyEl($('#vc'),$('#vfb'))};
+  };
+ };
+}
+var TP={list:[],t:{}};
+function vTProp(){
+ app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Puesta en común de propuestas</h2><p>1) Pega los códigos de propuestas de los equipos (LPP…), uno por línea, y genera la lista para repartir. 2) Valora tú cada propuesta. 3) Pega los códigos de valoración (LPV…) de los equipos y calcula el resultado.</p>'+
+ '<textarea class="sheet" id="pp" rows="5" placeholder="LPP-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="gl">Generar lista</button><button id="bk">Volver</button></div><div id="o1"></div>';
+ $('#bk').onclick=function(){go('prof')};
+ $('#gl').onclick=function(){
+  var bad=0,list=[],n=0;
+  $('#pp').value.split(/\s+/).filter(Boolean).forEach(function(c){var d=untok('LPP',c);if(!d||!d.p){bad++;return}d.p.forEach(function(t){n++;list.push(['P'+n,d.n,t])})});
+  TP.list=list;TP.t={};
+  if(!list.length){$('#o1').innerHTML='<div class="fb bad">No hay códigos válidos.</div>';return}
+  $('#o1').innerHTML=(bad?'<div class="fb bad">'+bad+' código(s) no válidos: se han ignorado.</div>':'')+
+   '<h3>Lista para repartir</h3><p style="font-size:14px;color:var(--muted)">Cópiala y compártela con la clase (aula virtual o pizarra). Los alumnos la pegan en «Puesta en común» y ven las propuestas con su identificador, sin autoría.</p><textarea class="sheet" id="lc" readonly rows="3">'+esc(tok('LPL',list))+'</textarea><div class="row"><button id="cpl">Copiar lista</button></div><div id="cfb"></div>'+
+   '<h3>Tu valoración (docente)</h3>'+list.map(function(x){return '<div class="card"><b>'+esc(x[0])+'</b> <span class="sim">'+esc(x[1])+'</span><p style="margin:6px 0">'+esc(x[2])+'</p>'+[0,1,2].map(function(k){return critSel(x[0],k,0)}).join('')+'</div>'}).join('')+
+   '<h3>Valoraciones de los equipos</h3><textarea class="sheet" id="vv" rows="5" placeholder="LPV-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="calc">Calcular resultado</button></div><div id="o2"></div>';
+  $('#cpl').onclick=function(){copyEl($('#lc'),$('#cfb'))};
+  $('#o1').querySelectorAll('select').forEach(function(sel){sel.onchange=function(){var r=TP.t[sel.dataset.id]=TP.t[sel.dataset.id]||[0,0,0];r[+sel.dataset.k]=+sel.value}});
+  $('#calc').onclick=function(){
+   var votes={},self={},bad2=0,seen={};
+   $('#vv').value.split(/\s+/).filter(Boolean).forEach(function(c){var d=untok('LPV',c);if(!d||!d.r){bad2++;return}seen[d.n.toLowerCase()]=1;list.forEach(function(x){var r=d.r[x[0]];if(!r)return;if(String(x[1]).toLowerCase()===d.n.toLowerCase())self[x[0]]=r;else(votes[x[0]]=votes[x[0]]||[]).push(r)})});
+   var avg=function(a){if(!a||!a.length)return null;return a.reduce(function(s,r){return s+(r[0]+r[1]+r[2])/3},0)/a.length};
+   var rows=list.map(function(x){var cl=avg(votes[x[0]]),au=self[x[0]]?avg([self[x[0]]]):null,tr=TP.t[x[0]]&&TP.t[x[0]].every(Boolean)?avg([TP.t[x[0]]]):null;var parts=[cl,tr].filter(function(v){return v!==null});return {id:x[0],nick:x[1],t:x[2],cl:cl,au:au,tr:tr,fin:parts.length?parts.reduce(function(a,b){return a+b},0)/parts.length:null,n:(votes[x[0]]||[]).length}}).sort(function(a,b){return (b.fin||0)-(a.fin||0)});
+   var f=function(v){return v===null?'-':v.toFixed(1).replace('.',',')};
+   $('#o2').innerHTML=(bad2?'<div class="fb bad">'+bad2+' código(s) de valoración no válidos: se han ignorado.</div>':'')+'<div class="fb">Equipos que han valorado: '+Object.keys(seen).length+'. Las medias son de 1 a 4. «Final» es la media entre la clase (sin la autoría) y tu valoración; si no has valorado, solo la de la clase.</div><div class="card tbl"><table><tr><th>#</th><th>Propuesta</th><th>Autoría</th><th class="n">Clase</th><th class="n">Autovaloración</th><th class="n">Docente</th><th class="n">Final</th></tr>'+rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(r.id)+' · '+esc(r.t)+'</td><td>'+esc(r.nick)+'</td><td class="n">'+f(r.cl)+(r.n?' ('+r.n+')':'')+'</td><td class="n">'+f(r.au)+'</td><td class="n">'+f(r.tr)+'</td><td class="n"><b>'+f(r.fin)+'</b></td></tr>'}).join('')+'</table></div>';
+  };
+ };
+}
+var M2CASE={
+ cas:{q:M2Q[0],cur:'sustituir el casquillo guía y realinear motor y transmisión',
+  rows:[['Holgura del casquillo guía','0,30 mm','0,31 mm'],['Desalineación angular','0,04 mm/100 mm','0,24 mm/100 mm'],['Rodamiento lado motor (nuevo)','Sin picos de defecto','Pico en 86,6 Hz y creciente'],['Corriente del motor','10,8 A','15,8 A']]},
+ ace:{q:M2Q[1],cur:'eliminar la sobrecarga que degrada el aceite y renovarlo con el grado ISO VG 220',
+  rows:[['Temperatura del aceite','62 °C','91 °C'],['Hierro en el aceite','8 ppm','95 ppm']]},
+ mon:{q:{q:'Hoy la desalineación vuelve a ser de 0,15 mm/100 mm y el pico a 2× la velocidad de giro ha subido. Apretaste el motor sin volver a medir. ¿Qué ha pasado?',ok:0,
+  o:['Al apretar, el motor se movió unas centésimas y nadie lo comprobó: la desalineación residual vuelve a cargar los rodamientos','Los tornillos se han aflojado por la vibración del variador','El acoplamiento es de mala calidad y se ha deformado','La frecuencia de red ha cambiado y desalinea los ejes'],
+  fb:'Apretar mueve el motor. Sin una última medición con el apriete final, la alineación conseguida antes no está garantizada.',
+  dead:{1:['Culpas a los tornillos','Los vuelves a apretar sin medir y el problema continúa: el origen es que nadie midió tras apretar. Retrocede.'],
+        2:['Culpas al acoplamiento','Cambias el acoplamiento y la desalineación sigue: no era la pieza, era el apriete sin medir. Retrocede.'],
+        3:['Culpas a la red','La frecuencia de red no desplaza los ejes. Retrocede.']}},
+  cur:'apretar el motor en cruz y volver a medir la alineación con el apriete final (máximo 0,05 mm/100 mm)',
+  rows:[['Desalineación tras el apriete final','Sin medir','0,15 mm/100 mm'],['Vibración a 2× la velocidad de giro','0,8 mm/s','3,1 mm/s']]}
+};
+function m2Cases(){
+ var p=S.pal,c=[];
+ if(p.root||p.parts)c.push('cas');
+ if(p[LUBQ[0].q]||p[LUBQ[1].q])c.push('ace');
+ if(p[MONTQ[2].q])c.push('mon');
+ return c;
+}
+function m2Build(){
+ var cs=m2Cases(),n=cs.length,f=Math.floor(10/n),Q=cs.map(function(k){var q=Object.assign({},M2CASE[k].q);q.full=f;return q});
+ var base=M2Q[2];
+ Q.push({q:'Con los datos de hoy, ¿cuál es la intervención que cierra el caso de raíz?',full:15-n*f,ok:0,
+  o:['Hacer lo siguiente: '+cs.map(function(k){return M2CASE[k].cur}).join('; ')+'; y comprobar después lo ya cambiado',base.o[1],base.o[2],base.o[3]],
+  fb:'La intervención curativa elimina el origen de cada paliativo y después comprueba lo que ya se haya dañado. Las demás opciones repiten el paliativo o gastan sin corregir el origen.',
+  dead:base.dead});
+ S.m2Q=Q;S.m2cs=cs;S.rq=Q.map(function(){return false});S.rw=Q.map(function(){return 0});
+}
+function vM2(){
+ if(!S.m2Q)m2Build();
+ var Q=S.m2Q,cs=S.m2cs,done=S.rq.every(Boolean);
+ var rows=[];cs.forEach(function(k){M2CASE[k].rows.forEach(function(r){rows.push(r)})});
+ var pals=Object.keys(S.pal).map(function(k){return S.pal[k].d[0].toLowerCase()});
+ var h='<div class="eyebrow">Misión 2 · Cerrar el caso de raíz</div><h2>Tres semanas después</h2>'+
+ '<p>En tu intervención diste por buenas estas soluciones paliativas: <b>'+pals.map(esc).join('; ')+'</b>. La EF-07 vuelve a parar. Estos son los datos de esta mañana comparados con los de justo después de la reparación.</p>'+(cs.indexOf('cas')>=0||cs.indexOf('mon')>=0?figAlign():'')+
+ '<div class="card tbl"><table><tr><th>Parámetro</th><th class="n">Tras la 1.ª intervención</th><th class="n">Hoy</th></tr>'+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="n">'+r[1]+'</td><td class="n">'+r[2]+'</td></tr>'}).join('')+'</table></div>'+
+ qBlock(Q,S.rq,S.rw)+'<div id="fb"></div>';
+ if(done){
+  h+='<div class="fb good"><b>Caso cerrado.</b> '+(S.sc.rec?'Recuperas '+S.sc.rec+' puntos del ranking por cerrar sin errores '+(S.sc.rec/2)+' paliativo(s).':'No recuperas puntos del ranking porque hubo errores en los diagnósticos de cada paliativo.')+'</div><h3>Lección aprendida</h3><p>Escribe en dos o tres frases qué error se cometió en la primera intervención y cómo se evita en el plan de mantenimiento. Se añade a tu informe.</p><textarea class="sheet" id="les" rows="5" style="width:100%;box-sizing:border-box" placeholder="Escribe aquí tu lección aprendida">'+esc(S.m2note)+'</textarea><div class="row"><button class="primary" id="next">Volver al parte final ('+S.m2pts+' de 15 puntos)</button></div>';
+ }else h+='<div class="row"><button class="primary" id="chk">Comprobar</button></div>';
+ app.innerHTML=h;
+ var c=$('#chk');if(c)c.onclick=function(){
+  var r=qCheck(Q,S.rq,S.rw);S.m2pts=qPts(Q,S.rq,S.rw);
+  S.sc.rec=cs.reduce(function(a,k,i){return a+(S.rq[i]&&S.rw[i]===0?2:0)},0);
+  if(r.dead){deadEnd(r.dead[0],r.dead[1],0,null,true);return}
+  render();if(!r.any)$('#fb').innerHTML='<div class="fb">Marca una respuesta en cada pregunta pendiente.</div>';
+ };
+ var l=$('#les');if(l)l.oninput=function(){S.m2note=l.value};
+ var n=$('#next');if(n)n.onclick=function(){if(l)S.m2note=l.value;go('final')};
+}
+/* ---------- Misión 3: mejoras de la instalación ---------- */
+var BUDGET=1000;
+var M3=[
+ {t:'Detector de colisión del robot con parada y registro de evento',c:600,cov:[0]},
+ {t:'Sensor de vibración en línea en el motor, con alarma',c:900,cov:[3]},
+ {t:'Sonda de temperatura del aceite del reductor, con alarma',c:350,cov:[4]},
+ {t:'Mirilla de nivel y punto de toma de muestras de aceite',c:120,cov:[4]},
+ {t:'Marca testigo y comprobación de holgura del casquillo tras cada colisión',c:200,cov:[1,2]},
+ {t:'Soporte fijo de comparador en el acoplamiento para medir la alineación en minutos',c:450,cov:[2]},
+ {t:'Registro de corriente del variador con alarma de tendencia (sin tocar la protección)',c:300,cov:[3]},
+ {t:'Plan de mantenimiento en el gestor, con inspección obligatoria tras cada colisión',c:250,cov:[0,1,2]},
+ {t:'Formación del operador: un aviso de colisión leve no se ignora',c:150,cov:[0]},
+ {t:'Repuestos de rodamientos y retenes en el almacén de la planta',c:400,cov:[]},
+ {t:'Silenciar los avisos de colisión leve para evitar paradas innecesarias',c:0,cov:[],bad:1},
+ {t:'Subir el ajuste de la protección de sobrecorriente del variador',c:0,cov:[],bad:1}
+];
+function m3Eval(sel){
+ var cov=[0,1,2,3,4].map(function(j){return sel.some(function(i){return !M3[i].bad&&M3[i].cov.indexOf(j)>=0})});
+ var bad=sel.filter(function(i){return M3[i].bad}).length;
+ return {cov:cov,bad:bad,pts:Math.max(0,Math.min(10,2*cov.filter(Boolean).length-3*bad))};
+}
+function vM3(){
+ var done=S.m3done,pick=S.m3sel;
+ var h='<div class="eyebrow">Misión 3 · Mejoras de la instalación</div><h2>Que no vuelva a pasar</h2>'+
+ '<p>Dirección te da un presupuesto de <b>'+BUDGET+' €</b> para que la EF-07 falle menos y se diagnostique más rápido. Elige las mejoras y justifica tu plan por escrito: irá a tu informe. La cadena de fallos fue: <i>'+CHAIN.slice(0,5).map(esc).join(' → ')+'</i>.</p>'+schem('all');
+ if(!done){
+  h+=ordFor('m3',M3.length).map(function(i){var o=M3[i];return '<label class="opt"><input type="checkbox" value="'+i+'"'+(pick.indexOf(i)>=0?' checked':'')+'><span>'+esc(o.t)+' <b>('+o.c+' €)</b></span></label>'}).join('')+
+  '<p class="order" id="spent"></p><h3>Tus propias mejoras</h3><p style="font-size:14px;color:var(--muted)">Opcional y sin puntos: añade las mejoras que no aparecen en la lista y que tú harías para evitar averías, mejorar el diagnóstico o facilitar el mantenimiento (por ejemplo, accesos, etiquetado, repuestos, formación, documentación). Indica para cada una qué problema resuelve.</p><textarea class="sheet" id="own" rows="4" style="width:100%;box-sizing:border-box" placeholder="Una mejora por línea">'+esc(S.m3own)+'</textarea><h3>Justificación</h3><p style="font-size:14px;color:var(--muted)">Explica en tres o cuatro frases qué eslabones de la cadena rompes con tus mejoras, cuáles detectan antes y cuáles previenen. Mínimo 60 caracteres.</p><textarea class="sheet" id="just" rows="5" style="width:100%;box-sizing:border-box">'+esc(S.m3note)+'</textarea><div id="fb"></div><div class="row"><button class="primary" id="ok">Presentar el plan</button><button id="bk">Volver al parte final</button></div>';
+  app.innerHTML=h;
+  var sp=function(){var sel=[].slice.call(app.querySelectorAll('input:checked')).map(function(x){return +x.value});var t=sel.reduce(function(a,i){return a+M3[i].c},0);$('#spent').innerHTML='Presupuesto usado: <b>'+t+' € de '+BUDGET+' €</b>'+(t>BUDGET?' · te pasas '+(t-BUDGET)+' €':'');return {sel:sel,t:t}};
+  sp();app.querySelectorAll('input[type=checkbox]').forEach(function(x){x.onchange=function(){S.m3sel=sp().sel}});
+  $('#just').oninput=function(){S.m3note=this.value};$('#own').oninput=function(){S.m3own=this.value};
+  $('#bk').onclick=function(){go('final')};
+  $('#ok').onclick=function(){
+   var r=sp();S.m3note=$('#just').value;S.m3own=$('#own').value;
+   if(!r.sel.length){$('#fb').innerHTML='<div class="fb">Elige al menos una mejora.</div>';return}
+   if(r.t>BUDGET){$('#fb').innerHTML='<div class="fb bad">Te pasas del presupuesto: quita mejoras hasta llegar a '+BUDGET+' €.</div>';return}
+   if(S.m3note.trim().length<60){$('#fb').innerHTML='<div class="fb">Escribe la justificación (mínimo 60 caracteres).</div>';return}
+   S.m3sel=r.sel;S.m3pts=m3Eval(r.sel).pts;S.m3done=true;if(S.m3pts>=8)badge('Fiabilidad');render();window.scrollTo(0,0);
+  };
+ }else{
+  var e=m3Eval(pick);
+  h+='<div class="fb '+(S.m3pts>=8?'good':'warn')+'"><b>Plan presentado: '+S.m3pts+' de 10 puntos.</b> Estos puntos quedan fuera del ranking.</div><div class="card tbl"><table><tr><th>Eslabón de la cadena</th><th>Cubierto</th></tr>'+
+  e.cov.map(function(c,j){return '<tr><td>'+esc(CHAIN[j])+'</td><td>'+(c?'Sí':'No: ningún elemento de tu plan lo detecta o previene')+'</td></tr>'}).join('')+'</table></div>'+
+  (e.bad?'<div class="fb bad"><b>Medidas que empeoran la situación:</b> '+pick.filter(function(i){return M3[i].bad}).map(function(i){return esc(M3[i].t)}).join('; ')+'. Ocultan el síntoma y quitan la última defensa.</div>':'')+
+  '<h3>Tu plan</h3><ul>'+pick.map(function(i){return '<li>'+esc(M3[i].t)+' ('+M3[i].c+' €)</li>'}).join('')+'</ul>'+(S.m3own.trim()?'<h3>Tus propias mejoras</h3><p style="white-space:pre-wrap">'+esc(S.m3own.trim())+'</p>':'')+'<p style="font-size:14px;color:var(--muted)">Tu justificación y tus propias mejoras se han añadido al informe.</p>'+ownCodeHtml()+'<div class="row"><button class="primary" id="bk">Volver al parte final</button></div>';
+  app.innerHTML=h;$('#bk').onclick=function(){go('final')};ownCodeWire();
+ }
+}
+function palTable(){
+ var k=Object.keys(S.pal);
+ if(!k.length)return '<div class="fb good"><b>Todas tus soluciones fueron curativas.</b> Eliminaste la causa raíz, no solo el síntoma: no habrá reincidencia.</div>';
+ return '<h3>Correctivo paliativo o curativo</h3><p>La línea funciona, pero en estas decisiones elegiste una solución paliativa. Es válida en planta si se programa después la curativa; aquí no lo hiciste.</p><div class="card tbl"><table><tr><th>Decisión</th><th>Qué deja sin resolver</th><th>Solución curativa</th><th class="n">Reincide en</th></tr>'+
+ k.map(function(x){var d=S.pal[x].d;return '<tr><td>'+esc(d[0])+'</td><td>'+esc(d[1])+'</td><td>'+esc(d[2])+'</td><td class="n">'+esc(d[3])+'</td></tr>'}).join('')+'</table></div>';
+}
+function ansText(Q,solved){
+ return Q.map(function(q,i){if(S.pal[q.q])return '- '+q.o[S.pal[q.q].v]+' (solución paliativa: '+S.pal[q.q].d[1]+')';return '- '+q.o[q.ok]}).join('\n');
+}
+function buildInforme(t){
+ var L=[];var seen=Object.keys(S.seen);
+ L.push('INFORME DE CAUSA RAÍZ Y ORDEN DE TRABAJO · Estación EF-07');
+ L.push('Técnico/a: '+PROFILE.nick+' · Rol: '+TOOLS[S.role].nombre+' · Nivel: '+(S.adv?'avanzado':'guiado')+' · Tiempo de paro: '+fmt(S.sec));
+ L.push('');L.push('1. EVIDENCIAS RECOGIDAS');
+ L.push(seen.length?seen.map(function(k){var p=k.split('|'),X=LOCS[p[0]],r=X.reads.filter(function(x){return x.t===p[1]})[0];return '- '+X.n+' · '+TNAME[p[1]]+': '+rtxt(p[0],r)}).join('\n'):'- (ninguna)');
+ L.push('');L.push('2. ANÁLISIS DE VIBRACIONES');
+ L.push('- Defecto en la pista exterior del rodamiento del lado motor: pico en 86,6 Hz (3,585 × 24,17 Hz) con armónicos y sin bandas laterales.');
+ L.push('- Pico elevado a 2× la velocidad de giro (48,3 Hz): desalineación entre motor y transmisión.');
+ L.push('');L.push('3. ANÁLISIS DE ACEITE');L.push(ansText(LUBQ,S.lq));
+ L.push('');L.push('4. CAUSA RAÍZ');
+ L.push('- '+(S.rootPal?ROOT[4].t+' (solución paliativa: solo es un síntoma)':ROOT[2].t));
+ L.push('Cadena de fallos: '+CHAIN.join(' → '));
+ L.push('');L.push('5. ORDEN DE TRABAJO');
+ L.push('Piezas y acciones: '+PARTS.filter(function(o,i){return o.ok&&!(S.partsPal&&i===0)}).map(function(o){return o.t}).join('; '));
+ L.push('Procedimiento: '+P().map(function(x,i){return (i+1)+') '+x}).join('  '));
+ L.push('Montaje y ajuste:');L.push(ansText(MONTQ,S.mq));
+ L.push('');L.push('6. MEDIDAS PREVENTIVAS PROPUESTAS');
+ L.push(S.prevSel.length?S.prevSel.map(function(i){return '- '+PREV[i].t+(PREV[i].ok?'':' (no previene la reincidencia)')}).join('\n'):'- (ninguna)');
+ L.push('');L.push('7. DECISIONES A REVISAR');
+ var pk=Object.keys(S.pal);
+ L.push(pk.length?pk.map(function(k){var d=S.pal[k].d;return '- Paliativo: '+d[0]+'. Deja sin resolver: '+d[1]+' Curativa: '+d[2]+' Reincide en '+d[3]+'.'}).join('\n'):'- Ninguna solución paliativa.');
+ L.push(S.deadLog.length?'- Callejones sin salida: '+S.deadLog.join('; ')+'.':'- Ningún callejón sin salida.');
+ if(S.m2Q&&S.rq.every(Boolean)){L.push('');L.push('8. MISIÓN 2 · CERRAR EL CASO DE RAÍZ ('+S.m2pts+'/15)');L.push('- Paliativos cerrados: '+S.m2cs.map(function(k){return M2CASE[k].cur}).join('; '));L.push('- Lección aprendida: '+(S.m2note.trim()||'(sin completar)'))}
+ if(S.m3done){L.push('');L.push('9. MISIÓN 3 · MEJORAS DE LA INSTALACIÓN ('+S.m3pts+'/10)');S.m3sel.forEach(function(i){L.push('- '+M3[i].t+' ('+M3[i].c+' €)')});if(S.m3own.trim())L.push('- Mejoras propuestas por mí: '+S.m3own.trim().replace(/\n+/g,' · '));L.push('- Justificación: '+S.m3note.trim())}
+ L.push('');L.push('REFLEXIÓN (completa con tus palabras)');
+ L.push('- El dato que más me ayudó a llegar a la causa raíz fue: ');
+ L.push('- Lo que haría distinto en la próxima intervención: ');
+ L.push('- Cómo evitaría que vuelva a pasar: ');
+ return L.join('\n');
+}
+function buildRecorrido(t){
+ var seen=Object.keys(S.seen),order=[],tools={};
+ seen.forEach(function(k){var p=k.split('|');if(order.indexOf(p[0])<0)order.push(p[0]);(tools[p[0]]=tools[p[0]]||[]).push(TNAME[p[1]])});
+ var L=['RECORRIDO DE '+PROFILE.nick+' · '+TOOLS[S.role].nombre+' · nivel '+(S.adv?'avanzado':'guiado'),
+  'Orden de estaciones: '+order.map(function(k){return LOCS[k].n}).join(' → '),
+  'Herramientas usadas: '+order.map(function(k){return LOCS[k].n+' ('+tools[k].join(', ')+')'}).join('; '),
+  'Callejones sin salida: '+(S.deadLog.length?S.deadLog.join('; '):'ninguno'),
+  'Soluciones paliativas: '+(Object.keys(S.pal).length?Object.keys(S.pal).map(function(k){return S.pal[k].d[0]}).join('; '):'ninguna'),
+  'Resultado: '+t+'/120 en '+fmt(S.sec)+' de paro'+(S.m2Q&&S.rq.every(Boolean)?' · Misión 2: '+S.m2pts+'/15':'')+(S.m3done?' · Misión 3: '+S.m3pts+'/10':'')];
+ return L.join('\n');
+}
+function rootStatus(){return !Object.keys(S.pal).length?0:(S.m2Q&&S.rq.every(Boolean)?1:2)}
+function rootTxt(){var n=Object.keys(S.pal).length;return ['a la primera (sin soluciones paliativas)','en la misión 2, tras '+n+' solución(es) paliativa(s) en la misión 1','sin cerrar: queda pendiente la misión 2'][rootStatus()]}
+function fichaMejoras(){
+ var L=[];
+ L.push('Causa raíz eliminada: '+rootTxt());
+ if(S.m2Q&&S.rq.every(Boolean))L.push('Misión 2: '+S.m2pts+'/15 · puntos recuperados en el ranking: +'+S.sc.rec+(S.m2note.trim()?'\nLección aprendida: '+S.m2note.trim():''));
+ if(S.m3done){L.push('Misión 3: '+S.m3pts+'/10');L.push('Mejoras elegidas:\n'+S.m3sel.map(function(i){return '- '+M3[i].t+' ('+M3[i].c+' €)'}).join('\n'));
+  if(S.m3own.trim())L.push('Mejoras propias:\n'+ownLines().map(function(x){return '- '+x}).join('\n'));
+  L.push('Justificación: '+S.m3note.trim())}
+ else L.push('Misión 3: pendiente');
+ return L.join('\n');
+}
+function rank(p){if(Object.keys(S.pal).length&&!(S.m2Q&&S.rq.every(Boolean)&&S.m2pts>=12))p=Math.min(p,104);return p>=105?'Jefe/a de mantenimiento':p>=85?'Técnico/a experto/a':p>=55?'Técnico/a de mantenimiento':'Técnico/a en formación'}
+function vFinal(){
+ var c=S.sc,t=total();
+ var ficha='FICHA DE MISIÓN · Línea parada EF-07\nJugador/a: '+PROFILE.nick+'\nMedalla: '+(scoreMedal(t)||'participación')+'\nMedallas especiales: '+specialMedals().filter(function(m){return m.on}).map(function(m){return m.n}).join(', ')+'\nCódigo de partida: '+mkCode(t)+'\nRol: '+TOOLS[S.role].nombre+'\nTiempo de paro: '+fmt(S.sec)+'\nSeguridad: '+c.seg+'/15\nDiagnóstico: '+(c.ev+c.vib+c.lub+c.root+c.chain)+'/40\nIntervención: '+(c.parts+c.proc+c.mon)+'/40 (penalizaciones: −'+c.pen+')\nDocumentación y prevención: '+c.prev+'/15\nRetos de estación: '+c.xt+'/6\nBonus de tiempo: '+c.bonus+'/4\nPUNTUACIÓN TOTAL: '+t+'/120 · '+rank(t)+'\nSoluciones paliativas: '+Object.keys(S.pal).length+(S.sc.rec?'\nRecuperación por cerrar la misión 2: +'+S.sc.rec:'')+'\n'+fichaMejoras()+'\nInsignias: '+S.badges.join(', ');
+ var med=scoreMedal(t);
+ app.innerHTML='<div class="eyebrow">Parte cerrado</div><h2>Línea en marcha</h2><div class="hero">'+avatar(PROFILE.av,accKeys(),med,150,'Tu avatar con accesorios y medalla')+'<div><div class="eyebrow">'+esc(PROFILE.nick)+'</div><div class="big">'+t+'<span style="font-size:.35em;color:var(--muted)"> / 120</span></div><p style="margin:0"><b>'+rank(t)+'</b> · Tiempo de paro '+fmt(S.sec)+'</p><p style="margin:4px 0 0">Causa raíz: <b>'+rootTxt()+'</b></p>'+(med?'<p style="margin:4px 0 0">Medalla de '+med+'</p>':'<p style="margin:4px 0 0">Sin medalla de puntuación: con 55 puntos consigues la de bronce.</p>')+'</div></div>'+
+ '<h3>Tus medallas</h3><div class="vit">'+[{n:'Medalla de '+(med||'participación'),d:'Según tu puntuación (oro 105, plata 85, bronce 55)',on:!!med,c:MEDC[med||'bronce']}].concat(specialMedals().map(function(m){m.c='#f2b705';return m})).map(function(m){return '<div class="md'+(m.on?'':' off')+'">'+medalIcon(m.on,m.c)+'<div><b>'+esc(m.n)+'</b>'+esc(m.d)+'</div></div>'}).join('')+'</div>'+
+ '<h3>Accesorios del avatar</h3><div class="vit">'+ACC.map(function(x){var on=S.badges.indexOf(x.b)>=0;return '<div class="md'+(on?'':' off')+'"><div><b>'+x.n+'</b>'+x.d+'</div></div>'}).join('')+'</div>'+
+ '<h3>Ranking</h3><div id="rank" class="card tbl"><p style="margin:0">Cargando ranking…</p></div>'+
+ '<h3>Misión 2 · Cerrar el caso de raíz</h3>'+(Object.keys(S.pal).length?(S.m2Q&&S.rq.every(Boolean)?'<div class="fb good"><b>Misión 2 completada: '+S.m2pts+' de 15.</b> Recuperas '+S.sc.rec+' puntos del ranking. Tu lección aprendida está en el informe.</div>':'<div class="card"><p style="margin:0 0 8px">Elegiste soluciones paliativas y la EF-07 vuelve a parar tres semanas después. Rediagnostica con los datos de hoy y decide la intervención que cierre el caso de raíz: hasta 15 puntos extra y hasta 6 que se suman a tu puntuación. Tu partida queda guardada en este navegador: puedes hacerla ahora o al empezar la siguiente sesión.</p><button class="primary" id="m2">Empezar la misión 2</button></div>'):'<div class="fb good"><b>Misión 2 no necesaria.</b> Tus soluciones fueron curativas y no hay reincidencia que investigar.</div>')+
+ '<h3>Misión 3 · Mejoras de la instalación</h3>'+(S.m3done?'<div class="fb good"><b>Misión 3 presentada: '+S.m3pts+' de 10.</b> Tu justificación está en el informe.</div><div class="row"><button id="m3">Revisar el plan</button></div>':'<div class="card"><p style="margin:0 0 8px">Con un presupuesto de '+BUDGET+' €, propón mejoras que eviten otra avería o la detecten antes, y justifícalas por escrito (hasta 10 puntos extra, fuera del ranking).</p><button class="primary" id="m3">Empezar la misión 3</button></div>')+
+ '<h3>Informe de causa raíz y orden de trabajo</h3><p style="font-size:14px;color:var(--muted)">El juego ha redactado un borrador con tus decisiones. Edítalo, complétalo con tus palabras y entrégalo: es el documento que se evalúa con la rúbrica.</p><textarea class="sheet" id="inf" rows="24" style="width:100%;box-sizing:border-box">'+esc(buildInforme(t))+'</textarea><div class="row"><button class="primary" id="cpi">Copiar informe</button></div><div id="ifb"></div>'+
+ '<h3>Tu recorrido para compartir</h3><textarea class="sheet" id="rec" rows="6" readonly style="width:100%;box-sizing:border-box">'+esc(buildRecorrido(t))+'</textarea><div class="row"><button id="cpr">Copiar recorrido</button></div>'+
+ '<div class="card"><h3>Para la puesta en común entre grupos</h3><ul style="margin:0;padding-left:18px;font-size:15px"><li>¿Por qué estación empezó cada grupo y qué descubrió primero?</li><li>¿Qué callejones y soluciones paliativas aparecieron y por qué resultaron tentadores?</li><li>¿Qué dato fue decisivo para llegar a la causa raíz y qué grupo lo encontró antes?</li></ul></div>'+schem('all')+
+ '<div class="card tbl"><table><tr><th>Apartado</th><th class="n">Puntos</th><th class="n">Máximo</th></tr>'+
+ '<tr><td>Seguridad y bloqueo</td><td class="n">'+c.seg+'</td><td class="n">15</td></tr>'+
+ '<tr><td>Diagnóstico (evidencias, vibraciones, aceite, causa, cadena)</td><td class="n">'+(c.ev+c.vib+c.lub+c.root+c.chain)+'</td><td class="n">40</td></tr>'+
+ '<tr><td>Intervención (piezas, orden y montaje)</td><td class="n">'+(c.parts+c.proc+c.mon)+'</td><td class="n">40</td></tr>'+
+ '<tr><td>Documentación y prevención</td><td class="n">'+c.prev+'</td><td class="n">15</td></tr>'+
+ '<tr><td>Retos de estación (alineación y corriente)</td><td class="n">'+c.xt+'</td><td class="n">6</td></tr>'+
+ '<tr><td>Bonus de tiempo</td><td class="n">'+c.bonus+'</td><td class="n">4</td></tr>'+
+ '<tr><td>Recuperación por cerrar la misión 2 (el total nunca pasa de 120)</td><td class="n">+'+c.rec+'</td><td class="n">6</td></tr>'+
+ '<tr><td>Penalizaciones (pistas, apoyos, piezas, bloqueo)</td><td class="n">−'+c.pen+'</td><td class="n"></td></tr></table></div>'+
+ palTable()+
+ '<h3>Insignias conseguidas</h3><div class="badges" style="margin-bottom:16px">'+S.badges.map(function(b){return '<span class="badge">'+b+'</span>'}).join('')+'</div>'+
+ '<h3>Ficha de misión</h3><p style="font-size:14px;color:var(--muted)">Cópiala y entrégala a tu profesor o pégala en la hoja de equipo.</p><textarea class="sheet" id="sheet" readonly rows="18">'+esc(ficha)+'</textarea>'+
+ '<div class="row"><button class="primary" id="copy">Copiar ficha</button><button id="again">Jugar otra vez con el otro rol</button></div><div id="fb"></div>';
+ $('#copy').onclick=function(){var ta=$('#sheet');var okf=function(){$('#fb').innerHTML='<div class="fb good">Ficha copiada.</div>'};var bad=function(){ta.select();$('#fb').innerHTML='<div class="fb">Selecciona el texto y cópialo con Ctrl+C.</div>'};
+  try{navigator.clipboard.writeText(ficha).then(okf,bad)}catch(e){bad()}};
+ $('#again').onclick=function(){clearInterval(S.timer);fresh();go('intro')};
+ saveRank(t,med);
+ packS().then(function(c){var el=$('#inf');if(el&&el.value.indexOf('CÓDIGO DE CONTINUACIÓN')<0)el.value+='\n\n— CÓDIGO DE CONTINUACIÓN (no lo borres: te permite seguir otro día, aunque cambies de ordenador) —\n'+c}).catch(function(){});
+ try{localStorage.setItem('lp_save',JSON.stringify(S))}catch(e){}
+ var m2b=$('#m2');if(m2b)m2b.onclick=function(){go('m2')};var m3b=$('#m3');if(m3b)m3b.onclick=function(){go('m3')};
+ var cp=function(id,fbid,txt){var el=$(id);return function(){var okf=function(){$(fbid).innerHTML='<div class="fb good">Copiado.</div>'};var bad=function(){el.select();$(fbid).innerHTML='<div class="fb">Selecciona el texto y cópialo con Ctrl+C.</div>'};try{navigator.clipboard.writeText(el.value).then(okf,bad)}catch(e){bad()}}};
+ $('#cpi').onclick=cp('#inf','#ifb');
+ $('#cpr').onclick=function(){var el=$('#rec');try{navigator.clipboard.writeText(el.value)}catch(e){el.select()}this.textContent='Recorrido copiado'};
+}
+$('#svb').onclick=openSave;
+render();
+})();
+</script>
+
+<noscript><div style="max-width:560px;margin:24px auto;padding:16px;border:2px solid #f2b705;font:16px/1.5 Arial,sans-serif;color:#171c20;background:#fff"><b>L&iacute;nea parada necesita JavaScript.</b><br>Abre este archivo en un navegador (Chrome, Safari, Edge o Firefox) y no en la vista previa de Archivos, Correo o WhatsApp. En el m&oacute;vil es m&aacute;s sencillo usar el enlace o el c&oacute;digo QR que te dio tu profesor/a.</div></noscript>
+</html>
