@@ -888,13 +888,13 @@ function rankRows(rows,me){
 }
 function hash32(x){var h=2166136261;for(var i=0;i<x.length;i++){h^=x.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return ('00000000'+h.toString(16)).slice(-8)}
 function mkCode(t){
- var p=[PROFILE.nick,PROFILE.av,t,S.sec,scoreMedal(t)||'-',Object.keys(S.pal).length,S.deads,specialMedals().filter(function(m){return m.on}).length,S.adv?1:0,S.m2pts,S.m3pts,rootStatus(),encodeURIComponent(ownLines().join('\n'))].join('|');
+ var p=[PROFILE.nick,PROFILE.av,t,S.sec,scoreMedal(t)||'-',Object.keys(S.pal).length,S.deads,specialMedals().filter(function(m){return m.on}).length,S.adv?1:0,S.m2pts,S.m3pts,rootStatus(),encodeURIComponent(ownLines().join('\n')),S.sc.seg|0,S.lotoSkipped?1:0,encodeURIComponent((S.m3note||'').trim().slice(0,400))].join('|');
  return 'LP1-'+btoa(unescape(encodeURIComponent(p)))+'-'+hash32(p+'|ef07');
 }
 function readCode(c){
  try{var m=/^LP1-([A-Za-z0-9+\/=]+)-([0-9a-f]{8})$/.exec(c.trim());if(!m)return null;
   var p=decodeURIComponent(escape(atob(m[1])));if(hash32(p+'|ef07')!==m[2])return null;
-  var f=p.split('|');return {nick:f[0],av:+f[1]||0,score:+f[2]||0,sec:+f[3]||0,medal:f[4]==='-'?'':f[4],pal:+f[5]||0,deads:+f[6]||0,esp:+f[7]||0,adv:+f[8]||0,m2:+f[9]||0,m3:+f[10]||0,root:+f[11]||0,props:(f[12]?decodeURIComponent(f[12]).split('\n').filter(Boolean):[])}}catch(e){return null}
+  var f=p.split('|');return {nick:f[0],av:+f[1]||0,score:+f[2]||0,sec:+f[3]||0,medal:f[4]==='-'?'':f[4],pal:+f[5]||0,deads:+f[6]||0,esp:+f[7]||0,adv:+f[8]||0,m2:+f[9]||0,m3:+f[10]||0,root:+f[11]||0,props:(f[12]?decodeURIComponent(f[12]).split('\n').filter(Boolean):[]),seg:f[13]===undefined?15:(+f[13]||0),skip:+f[14]||0,just:(f[15]?decodeURIComponent(f[15]):'')}}catch(e){return null}
 }
 function saveRank(t,med){
  var first=!S.saved;S.saved=true;
@@ -2585,7 +2585,7 @@ function propsFrom(raw){
  return {items:items,bad:bad,codes:codes};
 }
 function consAvg(k){var v=TP.cons[k]&&TP.cons[k].s;if(!v||v.length<3||v.some(function(x){return !x}))return null;return (v[0]+v[1]+v[2])/3}
-function consF(v){return v===null||v===undefined?'-':v.toFixed(1).replace('.',',')}
+function consF(v){return v===null||v===undefined?'-':(Math.round(v*10+1e-9)/10).toFixed(1).replace('.',',')}
 var WT=60;
 function wtLoad(){try{var q=localStorage.getItem('lp_wt');if(q!==null&&q!==''&&+q>=0&&+q<=100)WT=+q}catch(e){}}
 function teachAvg(k){var v=TP.cons[k]&&TP.cons[k].t;if(!v||v.length<3||v.some(function(x){return !x}))return null;return (v[0]+v[1]+v[2])/3}
@@ -2600,7 +2600,7 @@ function CONS_NOTA(){return 'Nota de cada propuesta: '+WT+' % docente y '+(100-W
 function consText(withAuthor){
  var rows=consRows(),L=['PUESTA EN COMÚN · INFORME DE PUNTUACIONES','Propuestas de mejora de la instalación EF-07 · valoración consensuada por la clase y calificación del docente','Escala: 1 insuficiente · 2 mejorable · 3 adecuado · 4 excelente. Criterios: eficacia, viabilidad y claridad.','Ponderación: docente '+WT+' % · clase '+(100-WT)+' %.',''];
  L.push('RESUMEN POR CRITERIOS (clase)');consCrit().forEach(function(c){L.push('  '+c.name+': media '+(c.avg===null?'-':consF(c.avg))+(c.best.length?' · mejor valoradas: '+c.best.join(', ')+' ('+c.mx+')':''))});L.push('');
- if(withAuthor){L.push('NOTA POR ALUMNO/A');consStudents().forEach(function(q){L.push('  '+q.nick+': '+(q.nota===null?'-':consF(q.nota)+'/10')+' (clase '+consF(q.cl)+' · docente '+consF(q.te)+' · '+q.n+' de '+q.tot+' propuestas completas)')});L.push('  '+CONS_NOTA());L.push('')}
+ if(withAuthor){L.push('NOTA POR ALUMNO/A');consStudents().forEach(function(q){L.push('  '+q.nick+': '+(q.nota===null?'-':consF(q.nota)+'/10')+' (clase '+consF(q.cl)+' · docente '+consF(q.te)+' · '+q.n+' de '+q.tot+' propuestas completas)')});L.push('  '+CONS_NOTA());L.push('');L.push('NOTA GLOBAL (partida + justificación + propuestas)');globRows().forEach(function(g){L.push('  '+g.nick+': '+(g.nota===null?'pendiente':consF(g.nota)+'/10')+' (partida '+consF(g.Ae)+' · justificación '+consF(g.B)+' · propuestas '+(g.has?consF(g.C):'-')+')'+(g.notes.length?' · '+g.notes.join(', '):''))});L.push('  '+GLOB_NOTA());L.push('')}
  rows.slice().sort(consOrder).forEach(function(r){
   L.push(r.it.id+' · clase '+consF(r.avg)+' · docente '+consF(r.tavg)+' · final '+(r.fin===null?'-':consF(to10(r.fin))+'/10')+(withAuthor?' · autoría: '+r.it.nick:''));
   L.push('  '+r.it.t);
@@ -2656,6 +2656,9 @@ function pdfCons(withAuthor){
   d.h2('Nota por alumno/a');
   d.table(['Alumno/a','Propuestas completas','Media clase','Media docente','Nota final (/10)'],consStudents().map(function(q){return [{t:q.nick,b:true},q.n+' de '+q.tot,consF(q.cl),consF(q.te),{t:q.nota===null?'-':consF(q.nota),b:true}]}),[.28,.18,.17,.17,.20],['l','c','c','c','c']);
   d.p(CONS_NOTA(),{sz:8.5,rgb:[90,98,106]});
+  d.h2('Nota global (partida + justificación + propuestas)');
+  d.table(['Alumno/a','Partida','Justif.','Propuestas','Nota global (/10)'],globRows().map(function(g){return [{t:g.nick,b:true},consF(g.Ae)+(g.grave?' (seg.)':''),consF(g.B),g.has?consF(g.C):'-',{t:g.nota===null?'pendiente':consF(g.nota),b:true}]}),[.30,.16,.16,.18,.20],['l','c','c','c','c']);
+  d.p(GLOB_NOTA(),{sz:8.5,rgb:[90,98,106]});
  }
  d.h2('Detalle y justificación de cada puntuación');
  sorted.forEach(function(r){
@@ -2669,9 +2672,29 @@ function pdfCons(withAuthor){
  d.p('Para el docente: la autoría solo aparece en este informe; en la interfaz las propuestas son anónimas para la clase.',{sz:9,rgb:[90,98,106]});
  return d;
 }
+var GW={a:40,b:10},GB={};
+function globLoad(){try{var q=JSON.parse(localStorage.getItem('lp_gw')||'null');if(q&&q.a>=0&&q.b>=0&&q.a+q.b<=100){GW.a=q.a;GW.b=q.b}}catch(e){}try{GB=JSON.parse(localStorage.getItem('lp_gb')||'{}')||{}}catch(e){GB={}}}
+function globSave(){try{localStorage.setItem('lp_gw',JSON.stringify(GW));localStorage.setItem('lp_gb',JSON.stringify(GB))}catch(e){}}
+function codesBest(raw){var best={};raw.split(/\s+/).filter(Boolean).forEach(function(l){var r=/^LP1-/.test(l)?readCode(l):null;if(!r)return;var k=r.nick.toLowerCase(),o=best[k];if(!o||r.score>o.score||(r.score===o.score&&r.sec<o.sec))best[k]=r});return best}
+function globRows(){
+ var best=codesBest(TP.raw||''),cs={};consStudents().forEach(function(q){cs[String(q.nick).toLowerCase()]=q});
+ var wA=GW.a,wB=GW.b,wC=100-wA-wB;
+ return Object.keys(best).map(function(k){
+  var r=best[k],q=cs[k],has=r.props.length>0,A=Math.min(10,(r.score+r.m2)/135*10),grave=!!(r.skip||r.seg<=5),Ae=grave?Math.min(A,5):A;
+  var bv=GB[k]&&GB[k].b?to10(GB[k].b):null,C=has&&q?q.nota:null,parts=[[wA,Ae]],notes=[],nota=null;
+  if(bv!==null)parts.push([wB,bv]);else notes.push('falta calificar la justificación (nota provisional)');
+  if(grave)notes.push('seguridad: partida limitada a 5');
+  var pend=false;
+  if(has){if(C===null){pend=true;notes.push('faltan propuestas por valorar y calificar')}else parts.push([wC,C])}
+  if(!pend){var sw=parts.reduce(function(a,p){return a+p[0]},0);nota=sw?parts.reduce(function(a,p){return a+p[0]*p[1]},0)/sw:null;
+   if(!has&&nota!==null&&nota>7){nota=7;notes.push('tope de 7 sin propuestas propias')}else if(!has)notes.push('sin propuestas propias (tope 7)')}
+  return {nick:r.nick,key:k,score:r.score,m2:r.m2,A:A,Ae:Ae,grave:grave,just:r.just,has:has,B:bv,C:C,nota:nota,notes:notes}
+ }).sort(function(a,b){return (b.nota===null?-1:b.nota)-(a.nota===null?-1:a.nota)});
+}
+function GLOB_NOTA(){return 'Nota global = '+GW.a+' % partida (misiones 1 y 2, sobre 135 puntos) + '+GW.b+' % justificación de la misión 3 + '+(100-GW.a-GW.b)+' % propuestas propias (60/40 docente/clase). Si hay fallo grave de seguridad (bloqueo omitido o 4 o más errores), la partida cuenta como máximo 5. Sin propuestas propias, la nota se calcula con la partida y la justificación y tiene un tope de 7. Es orientativa: la nota final la decides tú.'}
 function vTProp(){
  var saved='';try{saved=localStorage.getItem('lp_codes')||''}catch(e){}
- TP.cons=consLoad();wtLoad();
+ TP.cons=consLoad();wtLoad();globLoad();
  app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Puesta en común de propuestas</h2><p>Se usan los mismos códigos de partida del ranking: cada uno lleva las propuestas de mejora de su misión 3. <b>Fase 1:</b> la clase las ve sin autoría y en orden mezclado, y acuerda una puntuación y una justificación para cada una. <b>Fase 2:</b> tú las calificas por separado y la nota final combina ambas, con más peso para la tuya.</p>'+
  '<div class="card"><label class="sim" for="pp">Códigos de partida (los mismos que en el ranking, uno por línea)</label><textarea class="sheet" id="pp" rows="5" placeholder="LP1-..." style="width:100%;box-sizing:border-box">'+esc(saved)+'</textarea><div class="row"><button class="primary" id="gl">Cargar propuestas</button><button id="bk">Volver al ranking</button></div><div id="o0"></div></div><div id="o1"></div>';
  $('#bk').onclick=function(){try{localStorage.setItem('lp_codes',$('#pp').value)}catch(e){}go('prof')};
@@ -2698,23 +2721,38 @@ function vTProp(){
   $('#tab2').querySelectorAll('textarea[data-tc]').forEach(function(ta){ta.oninput=function(){var k=ta.dataset.tc,o=TP.cons[k]=TP.cons[k]||{s:[0,0,0],c:''};o.tc=ta.value;consSave()}});
   updT();
  }
+ function updG(){
+  var wa=$('#gwa');if(!wa)return;
+  $('#gwav').textContent=GW.a+' %';$('#gwbv').textContent=GW.b+' %';$('#gwcv').textContent=(100-GW.a-GW.b)+' %';
+  $('#gfin').innerHTML='<table class="rk"><tr><th>Alumno/a</th><th class="n">Partida /10</th><th class="n">Justificación /10</th><th class="n">Propuestas /10</th><th class="n">Nota global /10</th></tr>'+globRows().map(function(g){return '<tr><td>'+esc(g.nick)+'</td><td class="n">'+consF(g.Ae)+(g.grave?' ⚠':'')+'</td><td class="n">'+consF(g.B)+'</td><td class="n">'+(g.has?consF(g.C):'—')+'</td><td class="n"><b>'+(g.nota===null?'pendiente':consF(g.nota))+'</b></td></tr>'+(g.notes.length?'<tr><td colspan="5" style="font-size:12px;color:var(--muted)">'+esc(g.notes.join(' · '))+'</td></tr>':'')}).join('')+'</table><p style="font-size:13px;color:var(--muted)">'+esc(GLOB_NOTA())+'</p>';
+ }
+ function renderG(){
+  var rows=globRows();
+  $('#tab3').innerHTML='<div class="card"><h3 style="margin-top:0">Peso de cada bloque</h3><p style="font-size:14px;color:var(--muted);margin:0 0 8px">Partida (misiones 1 y 2), justificación de la misión 3 y propuestas propias (nota ponderada 60/40 de la pestaña 2). Los tres suman 100 %.</p><label class="sim" for="gwa">Partida: <b id="gwav"></b></label><input type="range" id="gwa" min="0" max="100" step="5" value="'+GW.a+'" style="width:100%"><label class="sim" for="gwb">Justificación: <b id="gwbv"></b></label><input type="range" id="gwb" min="0" max="100" step="5" value="'+GW.b+'" style="width:100%"><p class="sim" style="margin:4px 0 0">Propuestas propias: <b id="gwcv"></b> (lo que queda)</p></div>'+
+  rows.map(function(g){return '<div class="card"><b>'+esc(g.nick)+'</b><p class="sim" style="margin:4px 0">Partida: '+g.score+' + misión 2: '+g.m2+' → <b>'+consF(g.A)+' / 10</b>'+(g.grave?' · <span style="color:#c93a3a">⚠ fallo grave de seguridad: cuenta como máximo 5</span>':'')+'</p><p class="sim" style="margin:4px 0;white-space:pre-wrap">Justificación de la misión 3: '+esc(g.just||'(sin justificación)')+'</p><label class="sim" style="display:block;margin:6px 0 2px">Tu calificación de la justificación</label><select data-gb="'+esc(g.key)+'" style="font:inherit;padding:6px;max-width:100%">'+NIV.map(function(t,i){return '<option value="'+i+'"'+((GB[g.key]&&GB[g.key].b||0)===i?' selected':'')+'>'+(i?t:'Elige…')+'</option>'}).join('')+'</select></div>'}).join('')+
+  '<div class="card"><h3 style="margin-top:0">Nota global por alumno/a</h3><div id="gfin"></div></div>';
+  $('#gwa').oninput=function(){GW.a=+this.value;if(GW.a+GW.b>100){GW.b=100-GW.a;$('#gwb').value=GW.b}globSave();updG()};
+  $('#gwb').oninput=function(){GW.b=Math.min(+this.value,100-GW.a);this.value=GW.b;globSave();updG()};
+  $('#tab3').querySelectorAll('select[data-gb]').forEach(function(sel){sel.onchange=function(){var k=sel.dataset.gb;GB[k]=GB[k]||{};GB[k].b=+sel.value;globSave();updG()}});
+  updG();
+ }
  function show(){
   var raw=$('#pp').value;try{localStorage.setItem('lp_codes',raw)}catch(e){}
-  var r=propsFrom(raw);TP.items=r.items;TP.bad=r.bad;TP.codes=r.codes;
+  TP.raw=raw;var r=propsFrom(raw);TP.items=r.items;TP.bad=r.bad;TP.codes=r.codes;
   if(!r.items.length){$('#o1').innerHTML='<div class="fb bad">No hay propuestas en estos códigos. '+(r.codes?'Los códigos son válidos, pero ningún alumno/a ha añadido mejoras propias en la misión 3.':'Pega códigos de partida válidos.')+'</div>';return}
   var h=(r.bad?'<div class="fb bad">'+r.bad+' código(s) no válidos o modificados: se han ignorado.</div>':'')+'<div class="fb">'+r.items.length+' propuesta(s) de '+r.codes+' código(s). Se muestran de forma anónima. <b id="prog"></b></div>';
-  h+='<div class="row" style="margin:12px 0"><button class="primary" id="tb1">1 · Valoración de la clase</button><button id="tb2">2 · Calificación del docente</button></div><div id="tab1">';
+  h+='<div class="row" style="margin:12px 0"><button class="primary" id="tb1">1 · Valoración de la clase</button><button id="tb2">2 · Calificación del docente</button><button id="tb3">3 · Nota global</button></div><div id="tab1">';
   h+=r.items.map(function(it){var c=TP.cons[it.k]||{s:[0,0,0],c:''};
    return '<div class="card" data-k="'+it.k+'"><b>'+esc(it.id)+'</b><p style="margin:6px 0">'+esc(it.t)+'</p>'+[0,1,2].map(function(k){return critSel(it.k,k,(c.s||[])[k]||0)}).join('')+'<p class="sim" style="margin:8px 0 2px">Media consensuada: <b data-avg="'+it.k+'">'+consF(consAvg(it.k))+'</b></p><label class="sim" for="c_'+it.k+'">Justificación acordada por la clase</label><textarea class="sheet" id="c_'+it.k+'" data-c="'+it.k+'" rows="2" maxlength="400" placeholder="Por qué se le da esta puntuación" style="width:100%;box-sizing:border-box">'+esc(c.c||'')+'</textarea></div>';
   }).join('');
-  h+='<div class="card"><h3 style="margin-top:0">Resumen por criterios</h3><div id="crit"></div></div></div><div id="tab2" style="display:none"></div>';
+  h+='<div class="card"><h3 style="margin-top:0">Resumen por criterios</h3><div id="crit"></div></div></div><div id="tab2" style="display:none"></div><div id="tab3" style="display:none"></div>';
   h+='<div class="card"><h3 style="margin-top:0">Informe de puntuaciones</h3><p style="font-size:14px;color:var(--muted);margin:0 0 8px">Reúne la valoración de la clase, tu calificación, la nota final de cada propuesta y la nota por alumno/a.</p><label style="display:block;margin:0 0 10px"><input type="checkbox" id="auth" checked> Incluir la autoría en el informe (solo lo ves tú; en pantalla las propuestas siguen anónimas para la clase)</label><div class="row"><button class="primary" id="rpdf">Descargar informe en PDF</button><button id="rtxt">Copiar informe en texto</button></div><div id="rmsg"></div><textarea class="sheet" id="rout" rows="8" readonly style="width:100%;box-sizing:border-box;display:none"></textarea></div>';
   h+='<details class="card"><summary><b>Valoraciones individuales de los equipos (opcional)</b></summary><p style="font-size:14px;color:var(--muted)">Si además quieres que cada equipo valore por su cuenta: copia esta lista, repártela y luego pega aquí los códigos de valoración (LPV…).</p><textarea class="sheet" id="lc" readonly rows="3" style="width:100%;box-sizing:border-box">'+esc(tok('LPL',r.items.map(function(it){return [it.id,it.nick,it.t]})))+'</textarea><div class="row"><button id="cpl">Copiar lista</button></div><div id="cfb"></div><textarea class="sheet" id="vv" rows="4" placeholder="LPV-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="calc">Calcular resultado</button></div><div id="o2"></div></details>';
   $('#o1').innerHTML=h;
   var upd=function(){var n=TP.items.filter(function(it){return consAvg(it.k)!==null}).length;$('#prog').textContent='Valoradas por la clase: '+n+' de '+TP.items.length+'.';var cc=consCrit();$('#crit').innerHTML=n?'<table class="rk"><tr><th>Criterio</th><th class="n">Media</th><th>Mejor valoradas</th></tr>'+cc.map(function(c){return '<tr><td>'+esc(c.name)+'</td><td class="n">'+consF(c.avg)+'</td><td>'+esc(c.best.join(', '))+' ('+c.mx+')</td></tr>'}).join('')+'</table>':'<p style="margin:0;font-size:14px;color:var(--muted)">Aparecerá cuando se valore la primera propuesta (tres criterios).</p>'};
   upd();
-  var tab=function(n){$('#tab1').style.display=n===1?'':'none';$('#tab2').style.display=n===2?'':'none';$('#tb1').className=n===1?'primary':'';$('#tb2').className=n===2?'primary':'';if(n===2)renderT()};
-  $('#tb1').onclick=function(){tab(1)};$('#tb2').onclick=function(){tab(2)};
+  var tab=function(n){$('#tab1').style.display=n===1?'':'none';$('#tab2').style.display=n===2?'':'none';$('#tab3').style.display=n===3?'':'none';$('#tb1').className=n===1?'primary':'';$('#tb2').className=n===2?'primary':'';$('#tb3').className=n===3?'primary':'';if(n===2)renderT();if(n===3)renderG()};
+  $('#tb1').onclick=function(){tab(1)};$('#tb2').onclick=function(){tab(2)};$('#tb3').onclick=function(){tab(3)};
   $('#o1').querySelectorAll('select[data-id]').forEach(function(sel){sel.onchange=function(){var k=sel.dataset.id,o=TP.cons[k]=TP.cons[k]||{s:[0,0,0],c:''};o.s=o.s||[0,0,0];o.s[+sel.dataset.k]=+sel.value;consSave();var a=$('#o1').querySelector('[data-avg="'+k+'"]');if(a)a.textContent=consF(consAvg(k));upd()}});
   $('#o1').querySelectorAll('textarea[data-c]').forEach(function(ta){ta.oninput=function(){var k=ta.dataset.c,o=TP.cons[k]=TP.cons[k]||{s:[0,0,0],c:''};o.c=ta.value;consSave()}});
   $('#rpdf').onclick=function(){pdfSave(pdfCons($('#auth').checked),'LineaParada_puesta_en_comun.pdf','#rmsg')};
