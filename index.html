@@ -888,13 +888,13 @@ function rankRows(rows,me){
 }
 function hash32(x){var h=2166136261;for(var i=0;i<x.length;i++){h^=x.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return ('00000000'+h.toString(16)).slice(-8)}
 function mkCode(t){
- var p=[PROFILE.nick,PROFILE.av,t,S.sec,scoreMedal(t)||'-',Object.keys(S.pal).length,S.deads,specialMedals().filter(function(m){return m.on}).length,S.adv?1:0,S.m2pts,S.m3pts,rootStatus()].join('|');
+ var p=[PROFILE.nick,PROFILE.av,t,S.sec,scoreMedal(t)||'-',Object.keys(S.pal).length,S.deads,specialMedals().filter(function(m){return m.on}).length,S.adv?1:0,S.m2pts,S.m3pts,rootStatus(),encodeURIComponent(ownLines().join('\n'))].join('|');
  return 'LP1-'+btoa(unescape(encodeURIComponent(p)))+'-'+hash32(p+'|ef07');
 }
 function readCode(c){
  try{var m=/^LP1-([A-Za-z0-9+\/=]+)-([0-9a-f]{8})$/.exec(c.trim());if(!m)return null;
   var p=decodeURIComponent(escape(atob(m[1])));if(hash32(p+'|ef07')!==m[2])return null;
-  var f=p.split('|');return {nick:f[0],av:+f[1]||0,score:+f[2]||0,sec:+f[3]||0,medal:f[4]==='-'?'':f[4],pal:+f[5]||0,deads:+f[6]||0,esp:+f[7]||0,adv:+f[8]||0,m2:+f[9]||0,m3:+f[10]||0,root:+f[11]||0}}catch(e){return null}
+  var f=p.split('|');return {nick:f[0],av:+f[1]||0,score:+f[2]||0,sec:+f[3]||0,medal:f[4]==='-'?'':f[4],pal:+f[5]||0,deads:+f[6]||0,esp:+f[7]||0,adv:+f[8]||0,m2:+f[9]||0,m3:+f[10]||0,root:+f[11]||0,props:(f[12]?decodeURIComponent(f[12]).split('\n').filter(Boolean):[])}}catch(e){return null}
 }
 function saveRank(t,med){
  var first=!S.saved;S.saved=true;
@@ -909,8 +909,8 @@ function saveRank(t,med){
 }
 function vProf(){
  var saved='';try{saved=localStorage.getItem('lp_codes')||''}catch(e){}
- app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Ranking de clase</h2><p>Pega aquí los códigos de partida de tus alumnos, uno por línea. Se comprueba que cada código no se haya modificado a mano y se ordena por puntos y, a igualdad, por menor tiempo de paro. Si un nick aparece más de una vez, cuenta su mejor partida.</p><textarea class="sheet" id="codes" rows="8" placeholder="LP1-...">'+esc(saved)+'</textarea><div class="row"><button class="primary" id="mk">Generar ranking</button><button id="tp">Puesta en común de propuestas</button><button id="tq">QR de la actividad</button><button id="bk">Volver</button></div><div id="out"></div>';
- $('#tp').onclick=function(){go('tprop')};$('#tq').onclick=function(){go('qr')};
+ app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Ranking de clase</h2><p>Pega aquí los códigos de partida de tus alumnos, uno por línea. Los mismos códigos sirven para el ranking y para la puesta en común de propuestas. Se comprueba que cada código no se haya modificado a mano y se ordena por puntos y, a igualdad, por menor tiempo de paro. Si un nick aparece más de una vez, cuenta su mejor partida.</p><textarea class="sheet" id="codes" rows="8" placeholder="LP1-...">'+esc(saved)+'</textarea><div class="row"><button class="primary" id="mk">Generar ranking</button><button id="tp">Puesta en común (mismos códigos)</button><button id="tq">QR de la actividad</button><button id="bk">Volver</button></div><div id="out"></div>';
+ $('#tp').onclick=function(){try{localStorage.setItem('lp_codes',$('#codes').value)}catch(e){}go('tprop')};$('#tq').onclick=function(){go('qr')};
  $('#bk').onclick=function(){go(PROFILE.nick?'intro':'profile')};
  $('#mk').onclick=function(){
   var raw=$('#codes').value;try{localStorage.setItem('lp_codes',raw)}catch(e){}
@@ -919,6 +919,7 @@ function vProf(){
   var rows=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.score-a.score||a.sec-b.sec});
   var h=rows.length?'<div class="card tbl"><table class="rk"><tr><th>#</th><th>Jugador/a</th><th class="n">Puntos</th><th class="n">Paro</th><th>Medalla</th><th class="n">Paliativos</th><th>Causa raíz</th><th class="n">Callejones</th><th class="n">Especiales</th><th>Nivel</th><th class="n">Misión 2</th><th class="n">Misión 3</th></tr>'+rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td><span class="me">'+avatar(r.av,[],r.medal||null,30)+esc(r.nick)+'</span></td><td class="n">'+r.score+'</td><td class="n">'+fmt(r.sec)+'</td><td>'+esc(r.medal||'-')+'</td><td class="n">'+r.pal+'</td><td>'+['a la primera','en la misión 2','sin cerrar'][r.root]+'</td><td class="n">'+r.deads+'</td><td class="n">'+r.esp+'/8</td><td>'+(r.adv?'avanzado':'guiado')+'</td><td class="n">'+r.m2+'/15</td><td class="n">'+r.m3+'/10</td></tr>'}).join('')+'</table></div>':'<div class="fb">No hay códigos válidos.</div>';
   if(bad)h+='<div class="fb bad">'+bad+' código(s) no válidos o modificados: se han ignorado.</div>';
+  var pr=propsFrom(raw);h+='<div class="fb">'+(pr.items.length?pr.items.length+' propuesta(s) de mejora en estos mismos códigos, listas para la puesta en común.':'Estos códigos no traen propuestas de mejora.')+'</div>';
   $('#out').innerHTML=h;
  };
 }
@@ -2312,7 +2313,7 @@ function ownLines(){return S.m3own.split(/\n+/).map(function(x){return x.trim().
 function ownCodeHtml(){
  var L=ownLines();
  if(!L.length)return '<p style="font-size:14px;color:var(--muted)">No has añadido mejoras propias, así que no tienes propuestas que llevar a la puesta en común.</p>';
- return '<h3>Tu código de propuestas</h3><p style="font-size:14px;color:var(--muted)">Para la puesta en común: entrega este código a tu profesor/a. Él o ella reúne las propuestas de toda la clase y las reparte para valorarlas.</p><textarea class="sheet" id="pcode" readonly rows="3">'+esc(tok('LPP',{n:PROFILE.nick,p:L}))+'</textarea><div class="row"><button id="cpp">Copiar código de propuestas</button></div><div id="pfb"></div>';
+ return '<div class="fb good"><b>Tus propuestas ya van dentro de tu código de partida.</b> Vuelve al parte final, copia tu código de partida (se actualiza con ellas) y entrégaselo a tu profesor/a: sirve para el ranking y para la puesta en común, donde se valoran de forma anónima.</div>';
 }
 function ownCodeWire(){var b=$('#cpp');if(b)b.onclick=function(){copyEl($('#pcode'),$('#pfb'))}}
 var PCS={list:[],r:{}};
@@ -2337,31 +2338,320 @@ function vPC(){
   };
  };
 }
-var TP={list:[],t:{}};
-function vTProp(){
- app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Puesta en común de propuestas</h2><p>1) Pega los códigos de propuestas de los equipos (LPP…), uno por línea, y genera la lista para repartir. 2) Valora tú cada propuesta. 3) Pega los códigos de valoración (LPV…) de los equipos y calcula el resultado.</p>'+
- '<textarea class="sheet" id="pp" rows="5" placeholder="LPP-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="gl">Generar lista</button><button id="bk">Volver</button></div><div id="o1"></div>';
- $('#bk').onclick=function(){go('prof')};
- $('#gl').onclick=function(){
-  var bad=0,list=[],n=0;
-  $('#pp').value.split(/\s+/).filter(Boolean).forEach(function(c){var d=untok('LPP',c);if(!d||!d.p){bad++;return}d.p.forEach(function(t){n++;list.push(['P'+n,d.n,t])})});
-  TP.list=list;TP.t={};
-  if(!list.length){$('#o1').innerHTML='<div class="fb bad">No hay códigos válidos.</div>';return}
-  $('#o1').innerHTML=(bad?'<div class="fb bad">'+bad+' código(s) no válidos: se han ignorado.</div>':'')+
-   '<h3>Lista para repartir</h3><p style="font-size:14px;color:var(--muted)">Cópiala y compártela con la clase (aula virtual o pizarra). Los alumnos la pegan en «Puesta en común» y ven las propuestas con su identificador, sin autoría.</p><textarea class="sheet" id="lc" readonly rows="3">'+esc(tok('LPL',list))+'</textarea><div class="row"><button id="cpl">Copiar lista</button></div><div id="cfb"></div>'+
-   '<h3>Tu valoración (docente)</h3>'+list.map(function(x){return '<div class="card"><b>'+esc(x[0])+'</b> <span class="sim">'+esc(x[1])+'</span><p style="margin:6px 0">'+esc(x[2])+'</p>'+[0,1,2].map(function(k){return critSel(x[0],k,0)}).join('')+'</div>'}).join('')+
-   '<h3>Valoraciones de los equipos</h3><textarea class="sheet" id="vv" rows="5" placeholder="LPV-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="calc">Calcular resultado</button></div><div id="o2"></div>';
-  $('#cpl').onclick=function(){copyEl($('#lc'),$('#cfb'))};
-  $('#o1').querySelectorAll('select').forEach(function(sel){sel.onchange=function(){var r=TP.t[sel.dataset.id]=TP.t[sel.dataset.id]||[0,0,0];r[+sel.dataset.k]=+sel.value}});
-  $('#calc').onclick=function(){
-   var votes={},self={},bad2=0,seen={};
-   $('#vv').value.split(/\s+/).filter(Boolean).forEach(function(c){var d=untok('LPV',c);if(!d||!d.r){bad2++;return}seen[d.n.toLowerCase()]=1;list.forEach(function(x){var r=d.r[x[0]];if(!r)return;if(String(x[1]).toLowerCase()===d.n.toLowerCase())self[x[0]]=r;else(votes[x[0]]=votes[x[0]]||[]).push(r)})});
-   var avg=function(a){if(!a||!a.length)return null;return a.reduce(function(s,r){return s+(r[0]+r[1]+r[2])/3},0)/a.length};
-   var rows=list.map(function(x){var cl=avg(votes[x[0]]),au=self[x[0]]?avg([self[x[0]]]):null,tr=TP.t[x[0]]&&TP.t[x[0]].every(Boolean)?avg([TP.t[x[0]]]):null;var parts=[cl,tr].filter(function(v){return v!==null});return {id:x[0],nick:x[1],t:x[2],cl:cl,au:au,tr:tr,fin:parts.length?parts.reduce(function(a,b){return a+b},0)/parts.length:null,n:(votes[x[0]]||[]).length}}).sort(function(a,b){return (b.fin||0)-(a.fin||0)});
-   var f=function(v){return v===null?'-':v.toFixed(1).replace('.',',')};
-   $('#o2').innerHTML=(bad2?'<div class="fb bad">'+bad2+' código(s) de valoración no válidos: se han ignorado.</div>':'')+'<div class="fb">Equipos que han valorado: '+Object.keys(seen).length+'. Las medias son de 1 a 4. «Final» es la media entre la clase (sin la autoría) y tu valoración; si no has valorado, solo la de la clase.</div><div class="card tbl"><table><tr><th>#</th><th>Propuesta</th><th>Autoría</th><th class="n">Clase</th><th class="n">Autovaloración</th><th class="n">Docente</th><th class="n">Final</th></tr>'+rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(r.id)+' · '+esc(r.t)+'</td><td>'+esc(r.nick)+'</td><td class="n">'+f(r.cl)+(r.n?' ('+r.n+')':'')+'</td><td class="n">'+f(r.au)+'</td><td class="n">'+f(r.tr)+'</td><td class="n"><b>'+f(r.fin)+'</b></td></tr>'}).join('')+'</table></div>';
-  };
+/* ---------- PDF sin conexión (texto, A4) ---------- */
+var PW_N=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+var PW_B=[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+var PDF_WIN={'€':128,'…':133,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153};
+function pdfNorm(s){var m={'−':'-','→':'->','←':'<-','≤':'<=','≥':'>=','≈':'~','Ω':'ohm','✓':'x','☐':'[ ]','⚠':'!','\u00A0':' ','\t':'  '};return String(s).normalize('NFC').replace(/[−→←≤≥≈Ω✓☐⚠\u00A0\t]/g,function(c){return m[c]})}
+function pdfEnc(s){s=pdfNorm(s);var o='';for(var i=0;i<s.length;i++){var ch=s.charAt(i),c=s.charCodeAt(i);if(c>=32&&c<127)o+=ch;else if(c>=160&&c<=255)o+=ch;else if(PDF_WIN[ch])o+=String.fromCharCode(PDF_WIN[ch]);else if(c===10||c===13)o+=' '}return o}
+function pdfEsc(s){return s.replace(/[\\()]/g,'\\$&').replace(/[\x80-\xff]/g,function(c){return '\\'+('00'+c.charCodeAt(0).toString(8)).slice(-3)})}
+function pdfCw(c,b){
+ if(c>=32&&c<127)return (b?PW_B:PW_N)[c-32];
+ var w=556;
+ if((c>=192&&c<=197)||(c>=200&&c<=203)||c===209)w=667;
+ if(c>=204&&c<=207)w=278;
+ if(c>=210&&c<=214)w=778;
+ if(c>=217&&c<=220)w=722;
+ if(c===171||c===187)w=556;if(c===191)w=611;if(c===161)w=333;if(c===183)w=278;if(c===176)w=400;
+ if(c===151||c===133)w=1000;if(c===149)w=350;
+ if(c>=224&&c<=252&&c!==231)w=b?611:556;
+ return w;
+}
+function pdfTw(s,b,sz){var w=0;for(var i=0;i<s.length;i++)w+=pdfCw(s.charCodeAt(i),b);return w*sz/1000}
+function pdfWrap(s,b,sz,maxW){
+ var out=[];
+ String(s).split('\n').forEach(function(par){
+  var e=pdfEnc(par);
+  if(!e.trim()){out.push('');return}
+  var words=e.split(' '),line='';
+  words.forEach(function(w){
+   while(pdfTw(w,b,sz)>maxW){var k=1;while(k<w.length&&pdfTw(w.slice(0,k+1),b,sz)<=maxW)k++;if(line){out.push(line);line=''}out.push(w.slice(0,k));w=w.slice(k)}
+   if(!w)return;
+   var t=line?line+' '+w:w;
+   if(pdfTw(t,b,sz)<=maxW)line=t;else{out.push(line);line=w}
+  });
+  out.push(line);
+ });
+ return out;
+}
+function pdfNew(foot){
+ var d={pages:[],y:0,c:null,foot:foot},L=46,R=549,CW=503,BOT=58;
+ function col(a){return a.map(function(v){return (v/255).toFixed(3)}).join(' ')}
+ function np(){d.c=[];d.pages.push(d.c);d.y=842-46}
+ function tx(x,y,s,b,sz,rgb){d.c.push('BT /F'+(b?2:1)+' '+sz+' Tf '+col(rgb||[26,31,36])+' rg '+x.toFixed(1)+' '+y.toFixed(1)+' Td ('+pdfEsc(s)+') Tj ET')}
+ function rc(x,y,w,h,fill,stroke){d.c.push('q '+(fill?col(fill)+' rg ':'')+(stroke?col(stroke)+' RG 0.6 w ':'')+x.toFixed(1)+' '+y.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re '+(fill&&stroke?'B':fill?'f':'S')+' Q')}
+ function ln(x1,y1,x2,y2,rgb){d.c.push('q '+col(rgb||[170,170,170])+' RG 0.6 w '+x1.toFixed(1)+' '+y1.toFixed(1)+' m '+x2.toFixed(1)+' '+y2.toFixed(1)+' l S Q')}
+ function need(h){if(!d.c||d.y-h<BOT)np()}
+ d.band=function(title,sub){
+  if(!d.c)np();
+  rc(0,842-74,595,74,[26,31,36]);rc(0,842-78,595,4,[242,183,5]);
+  tx(L,842-34,pdfEnc(title),true,18,[255,255,255]);tx(L,842-55,pdfEnc(sub),false,10.5,[225,225,225]);
+  d.y=842-74-22;
  };
+ d.h2=function(s){need(52);d.y-=10;tx(L,d.y-12,pdfEnc(s),true,12.5,[179,38,30]);d.y-=18;ln(L,d.y,R,d.y,[179,38,30]);d.y-=8};
+ d.p=function(s,o){
+  o=o||{};var sz=o.sz||10,lead=o.lead||sz*1.42,x=o.x||L,w=o.w||CW;
+  pdfWrap(s,!!o.b,sz,w).forEach(function(l){need(lead);d.y-=lead;if(l)tx(x,d.y+sz*0.28,l,!!o.b,sz,o.rgb)});
+  d.y-=(o.after==null?3:o.after);
+ };
+ d.kv=function(pairs){
+  pairs.forEach(function(kv){
+   var ls=pdfWrap(kv[1],false,kv[2]||10,CW-126),lead=14;
+   need(Math.min(ls.length,3)*lead);
+   d.y-=lead;tx(L,d.y+3,pdfEnc(kv[0]),true,9.5,[90,98,106]);
+   ls.forEach(function(l,i){if(i){need(lead);d.y-=lead}tx(L+126,d.y+3,l,false,kv[2]||10)});
+  });
+  d.y-=4;
+ };
+ d.table=function(head,rows,fr,al,o){
+  o=o||{};var sz=o.sz||9,lead=sz*1.32,pad=4,ws=fr.map(function(f){return f*CW});
+  function row(cells,isHead){
+   var cl=cells.map(function(c,i){var b=isHead||(c&&c.b);var t=(c&&c.t!==undefined)?c.t:c;return {b:b,t:t,ls:t==='\u25A1'?['']:pdfWrap(t==null?'':String(t),b,sz,ws[i]-2*pad)}});
+   var h=Math.max.apply(null,cl.map(function(c){return c.ls.length}))*lead+2*pad-2;if(h<18)h=18;
+   if(!d.c||d.y-h<BOT){np();if(!isHead&&head)row(head,true)}
+   var x=L,y=d.y-h;
+   cl.forEach(function(c,i){
+    rc(x,y,ws[i],h,isHead?[236,236,236]:null,[190,190,190]);
+    if(c.t==='\u25A1'){rc(x+ws[i]/2-5,y+h/2-5,10,10,null,[90,90,90])}
+    else c.ls.forEach(function(l,j){if(!l)return;var tw=pdfTw(l,c.b,sz);var tx0=al&&al[i]==='r'?x+ws[i]-pad-tw:(al&&al[i]==='c'?x+(ws[i]-tw)/2:x+pad);tx(tx0,d.y-pad-sz*0.9-j*lead,l,c.b,sz)});
+    x+=ws[i];
+   });
+   d.y-=h;
+  }
+  if(head)row(head,true);
+  rows.forEach(function(r){row(r,false)});
+  d.y-=8;
+ };
+ d.lines=function(n){for(var i=0;i<n;i++){need(22);d.y-=22;ln(L,d.y,R,d.y,[200,200,200])}d.y-=4};
+ d.gap=function(h){d.y-=h};
+ d.finish=function(){
+  var n=d.pages.length;
+  d.pages.forEach(function(pg,i){d.c=pg;tx(L,26,pdfEnc(d.foot+' · Línea parada EF-07 · CC BY-NC-SA 4.0'),false,8,[120,120,120]);var s='Página '+(i+1)+' de '+n;tx(R-pdfTw(s,false,8),26,s,false,8,[120,120,120])});
+  return d;
+ };
+ return d;
+}
+function pdfBytes(d){
+ var out=[],off=[],pos=0;
+ function w(s){out.push(s);pos+=s.length}
+ var np=d.pages.length,objs=5+2*np;
+ w('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+ function obj(i,body){off[i]=pos;w(i+' 0 obj\n'+body+'\nendobj\n')}
+ var kids=[];for(var i=0;i<np;i++)kids.push((5+2*i)+' 0 R');
+ obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+ obj(2,'<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+np+' >>');
+ obj(3,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+ obj(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+ d.pages.forEach(function(pg,i){
+  var s=pg.join('\n');
+  obj(5+2*i,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+(6+2*i)+' 0 R >>');
+  obj(6+2*i,'<< /Length '+s.length+' >>\nstream\n'+s+'\nendstream');
+ });
+ var xr=pos;
+ w('xref\n0 '+objs+'\n0000000000 65535 f \n');
+ for(var k=1;k<objs;k++)w(('0000000000'+off[k]).slice(-10)+' 00000 n \n');
+ w('trailer\n<< /Size '+objs+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF');
+ return out.join('');
+}
+function pdfSave(d,name,msgSel){
+ d.finish();
+ var s=pdfBytes(d),a=new Uint8Array(s.length);
+ for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i)&255;
+ var blob=new Blob([a],{type:'application/pdf'}),url=URL.createObjectURL(blob);
+ var box=msgSel?$(msgSel):null;
+ var say=function(h){if(box)box.innerHTML=h};
+ var link='<a href="'+url+'" download="'+name+'" target="_blank" rel="noopener">pulsa aquí para descargarlo</a>';
+ var direct=function(){
+  say('<div class="fb good"><b>PDF generado.</b> Si no se ha descargado solo, '+link+'.</div>');
+  try{var l=document.createElement('a');l.href=url;l.download=name;l.style.display='none';document.body.appendChild(l);l.click();document.body.removeChild(l)}catch(e){}
+ };
+ var cl=window.claude;
+ if(cl&&cl.use){
+  cl.use('downloads').then(function(dl){
+   if(!dl){direct();return}
+   dl.save({filename:name,data:blob}).then(function(){say('<div class="fb good"><b>PDF descargado.</b> '+esc(name)+'</div>')},function(e){
+    if(e&&e.code==='declined'){say('<div class="fb">Descarga cancelada.</div>');return}
+    direct();
+   });
+  },function(){direct()});
+ }else direct();
+ return a.length;
+}
+function pdfSlug(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'_').slice(0,24)||'jugador'}
+function informeText(t){var el=$('#inf');var v=el?el.value:buildInforme(t);var i=v.indexOf('— CÓDIGO DE CONTINUACIÓN');if(i>=0)v=v.slice(0,i);return v.trim()}
+function pdfDatos(d,t){
+ var med=scoreMedal(t);
+ d.kv([['Jugador/a',PROFILE.nick],['Rol',TOOLS[S.role].nombre],['Nivel',S.adv?'Avanzado':'Guiado'],['Fecha',new Date().toLocaleDateString('es-ES')],['Puntuación total',t+' / 120 · '+rank(t)],['Medalla',med?'Medalla de '+med:'Sin medalla de puntuación'],['Tiempo de paro',fmt(S.sec)],['Causa raíz eliminada',rootTxt()],['Código de partida',mkCode(t),7.5]]);
+}
+function pdfPuntos(d){
+ var c=S.sc;
+ d.table(['Apartado','Puntos','Máximo'],[
+  ['Seguridad y bloqueo',c.seg,15],
+  ['Diagnóstico (evidencias, vibraciones, aceite, causa raíz y cadena)',c.ev+c.vib+c.lub+c.root+c.chain,40],
+  ['Intervención (piezas, orden y montaje)',c.parts+c.proc+c.mon,40],
+  ['Documentación y prevención',c.prev,15],
+  ['Retos de estación (alineación y corriente)',c.xt,6],
+  ['Bonus de tiempo',c.bonus,4],
+  ['Recuperación por cerrar la misión 2',c.rec?'+'+c.rec:0,6],
+  ['Penalizaciones (pistas, apoyos, piezas, bloqueo)','-'+c.pen,''],
+  [{t:'TOTAL (tope 120)',b:true},{t:total(),b:true},{t:120,b:true}]],[.62,.19,.19],['l','r','r']);
+}
+function pdfPal(d){
+ var k=Object.keys(S.pal);
+ if(!k.length){d.p('Todas las soluciones fueron curativas: se eliminó la causa raíz y no habrá reincidencia.');return}
+ d.table(['Decisión paliativa','Qué deja sin resolver','Solución curativa','Reincide en'],k.map(function(x){var q=S.pal[x].d;return [q[0],q[1],q[2],q[3]]}),[.25,.30,.30,.15],['l','l','l','l']);
+}
+function pdfInforme(d,t){
+ informeText(t).split('\n').forEach(function(l){
+  if(/^\d+\. [A-ZÁÉÍÓÚÑ]/.test(l)||/^INFORME|^REFLEXI/.test(l))d.p(l,{b:true,sz:10,after:1});
+  else d.p(l,{sz:9.5,lead:12.5,after:0});
+ });
+}
+function pdfPartida(){
+ var t=total(),d=pdfNew('Partida de '+PROFILE.nick);
+ d.band('Línea parada · Estación EF-07','Informe completo de la partida · '+PROFILE.nick);
+ d.h2('Datos de la partida');pdfDatos(d,t);
+ d.h2('Puntuación por apartados');pdfPuntos(d);
+ d.h2('Medallas e insignias');
+ d.p('Medallas especiales: '+(specialMedals().filter(function(m){return m.on}).map(function(m){return m.n}).join(', ')||'ninguna'));
+ d.p('Insignias: '+(S.badges.join(', ')||'ninguna'));
+ d.h2('Correctivo paliativo o curativo');pdfPal(d);
+ d.h2('Misiones 2 y 3');d.p(fichaMejoras());
+ d.h2('Recorrido');d.p(buildRecorrido(t));
+ d.h2('Informe de causa raíz y orden de trabajo');pdfInforme(d,t);
+ return d;
+}
+function pdfEval(){
+ var t=total(),c=S.sc,d=pdfNew('Evaluación de '+PROFILE.nick);
+ d.band('Línea parada · Ficha de evaluación','Información para evaluar la actividad · '+PROFILE.nick);
+ d.h2('Datos de la partida');pdfDatos(d,t);
+ d.h2('1. Resultados del juego (automáticos)');pdfPuntos(d);
+ d.h2('2. Decisiones a revisar');
+ d.p('Causa raíz: '+rootTxt()+'.');
+ d.p('Callejones sin salida: '+(S.deadLog.length?S.deadLog.join('; '):'ninguno')+'.');
+ pdfPal(d);
+ if(S.m2Q&&S.rq.every(Boolean))d.p('Misión 2 ('+S.m2pts+'/15). Lección aprendida: '+(S.m2note.trim()||'(sin completar)'));
+ else d.p('Misión 2: '+(Object.keys(S.pal).length?'pendiente (hay soluciones paliativas sin cerrar).':'no necesaria.'));
+ if(S.m3done){d.p('Misión 3 ('+S.m3pts+'/10). Mejoras elegidas: '+S.m3sel.map(function(i){return M3[i].t+' ('+M3[i].c+' €)'}).join('; ')+'.');
+  if(ownLines().length)d.p('Mejoras propuestas por el alumno/a: '+ownLines().join(' · '));
+  d.p('Justificación: '+(S.m3note.trim()||'(sin completar)'))}
+ else d.p('Misión 3: pendiente.');
+ d.h2('3. Rúbrica analítica del informe de causa raíz y orden de trabajo');
+ d.p('Marca un nivel por criterio. Adapta los criterios a tu rúbrica si lo necesitas.',{sz:9,rgb:[90,98,106]});
+ var B='\u25A1';
+ d.table(['Criterio','Insuficiente','Suficiente','Notable','Sobresaliente'],[
+  ['Diagnóstico: evidencias, vibraciones y aceite',B,B,B,B],
+  ['Causa raíz y cadena de fallos (síntoma frente a causa)',B,B,B,B],
+  ['Orden de trabajo: piezas, procedimiento y montaje',B,B,B,B],
+  ['Seguridad: bloqueo, energías residuales y normas',B,B,B,B],
+  ['Medidas preventivas y cierre del caso (misiones 2 y 3)',B,B,B,B],
+  ['Claridad y calidad del informe',B,B,B,B]],[.44,.14,.14,.14,.14],['l','c','c','c','c']);
+ d.p('Observaciones del docente:',{b:true,after:0});d.lines(3);
+ d.h2('4. Coevaluación entre los miembros de la pareja (lista de cotejo)');
+ d.p('Compañero/a evaluado/a: ______________________________',{after:6});
+ d.table(['Indicador','Sí','En parte','No'],[
+  ['Ha hecho aportaciones útiles al diagnóstico',B,B,B],
+  ['Ha comunicado con claridad los datos de su rol',B,B,B],
+  ['Ha cumplido las normas de seguridad',B,B,B],
+  ['Ha participado en la puesta en común',B,B,B]],[.58,.14,.14,.14],['l','c','c','c']);
+ d.h2('5. Autoevaluación');
+ d.p('Qué corregiría y qué haría distinto en la próxima intervención:',{after:0});d.lines(3);
+ d.h2('6. Calificación');
+ d.p('Informe: ______ /10      Coevaluación: ______ /10      Puesta en común: ______ /10      Nota final: ______',{after:8});
+ d.p('Los puntos, las medallas y el ranking del juego motivan, pero no son la nota.',{sz:9,rgb:[90,98,106]});
+ d.h2('Anexo · Informe del alumno/a');pdfInforme(d,t);
+ return d;
+}
+/* ---------- Puesta en común consensuada (modo profesor/a) ---------- */
+var TP={items:[],cons:{},bad:0,codes:0};
+function consKey(it){return hash32(it.nick.toLowerCase()+'|'+it.t)}
+function consLoad(){try{return JSON.parse(localStorage.getItem('lp_cons')||'{}')||{}}catch(e){return {}}}
+function consSave(){try{localStorage.setItem('lp_cons',JSON.stringify(TP.cons))}catch(e){}}
+function propsFrom(raw){
+ var items=[],seen={},bad=0,codes=0;
+ raw.split(/\s+/).filter(Boolean).forEach(function(c){
+  var nick,arr,r=/^LP1-/.test(c)?readCode(c):null;
+  if(r){nick=r.nick;arr=r.props}
+  else{var d=untok('LPP',c);if(d&&d.p){nick=d.n;arr=d.p}}
+  if(!arr){bad++;return}
+  codes++;
+  arr.forEach(function(t){var k=String(nick).toLowerCase()+'|'+t;if(seen[k])return;seen[k]=1;items.push({nick:nick,t:t})});
+ });
+ items.forEach(function(it){it.k=consKey(it)});
+ items.sort(function(a,b){return a.k<b.k?-1:a.k>b.k?1:0});
+ items.forEach(function(it,i){it.id='P'+(i+1)});
+ return {items:items,bad:bad,codes:codes};
+}
+function consAvg(k){var v=TP.cons[k]&&TP.cons[k].s;if(!v||v.length<3||v.some(function(x){return !x}))return null;return (v[0]+v[1]+v[2])/3}
+function consF(v){return v===null||v===undefined?'-':v.toFixed(1).replace('.',',')}
+function consRows(){
+ return TP.items.map(function(it){var c=TP.cons[it.k]||{};return {it:it,s:c.s||[0,0,0],c:(c.c||'').trim(),avg:consAvg(it.k)}});
+}
+function consText(withAuthor){
+ var rows=consRows(),L=['PUESTA EN COMÚN · INFORME DE PUNTUACIONES','Propuestas de mejora de la instalación EF-07 · valoración consensuada por la clase','Escala: 1 insuficiente · 2 mejorable · 3 adecuado · 4 excelente. Criterios: eficacia, viabilidad y claridad.',''];
+ rows.slice().sort(function(a,b){return (b.avg||0)-(a.avg||0)}).forEach(function(r){
+  L.push(r.it.id+' · media '+consF(r.avg)+(withAuthor?' · autoría: '+r.it.nick:''));
+  L.push('  '+r.it.t);
+  L.push('  Eficacia '+(r.s[0]||'-')+' · Viabilidad '+(r.s[1]||'-')+' · Claridad '+(r.s[2]||'-'));
+  L.push('  Justificación: '+(r.c||'(sin comentario)'));L.push('');
+ });
+ return L.join('\n');
+}
+function pdfCons(withAuthor){
+ var rows=consRows(),done=rows.filter(function(r){return r.avg!==null}).length,d=pdfNew('Puesta en común');
+ d.band('Línea parada · Puesta en común','Informe de puntuaciones de las propuestas de mejora');
+ d.kv([['Fecha',new Date().toLocaleDateString('es-ES')],['Propuestas',rows.length+' ('+done+' valoradas)'],['Escala','1 insuficiente · 2 mejorable · 3 adecuado · 4 excelente'],['Criterios','Eficacia, viabilidad y claridad'],['Valoración','Puntuación consensuada por toda la clase; la media es la de los tres criterios.']]);
+ var sorted=rows.slice().sort(function(a,b){return (b.avg||0)-(a.avg||0)});
+ d.h2('Resumen');
+ d.table(withAuthor?['#','Propuesta','Autoría','Efic.','Viab.','Clar.','Media']:['#','Propuesta','Efic.','Viab.','Clar.','Media'],sorted.map(function(r){
+  var base=[r.it.id,r.it.t];if(withAuthor)base.push(r.it.nick);
+  return base.concat([r.s[0]||'-',r.s[1]||'-',r.s[2]||'-',{t:consF(r.avg),b:true}]);
+ }),withAuthor?[.07,.43,.14,.08,.08,.08,.12]:[.07,.55,.09,.09,.09,.11],withAuthor?['l','l','l','c','c','c','c']:['l','l','c','c','c','c']);
+ d.h2('Detalle y justificación de cada puntuación');
+ sorted.forEach(function(r){
+  d.p(r.it.id+' · media '+consF(r.avg)+(withAuthor?' · autoría: '+r.it.nick:''),{b:true,after:1});
+  d.p(r.it.t,{sz:10,after:1});
+  d.p('Eficacia '+(r.s[0]||'-')+' · Viabilidad '+(r.s[1]||'-')+' · Claridad '+(r.s[2]||'-'),{sz:9.5,after:1,rgb:[90,98,106]});
+  d.p('Justificación de la clase: '+(r.c||'(sin comentario)'),{sz:10,after:9});
+ });
+ d.p('Para el docente: usa estas puntuaciones y comentarios como apoyo al valorar cada actividad. La autoría solo aparece en este informe; en la interfaz las propuestas son anónimas.',{sz:9,rgb:[90,98,106]});
+ return d;
+}
+function vTProp(){
+ var saved='';try{saved=localStorage.getItem('lp_codes')||''}catch(e){}
+ TP.cons=consLoad();
+ app.innerHTML='<div class="eyebrow">Modo profesor/a</div><h2>Puesta en común de propuestas</h2><p>Se usan los mismos códigos de partida del ranking: cada uno lleva las propuestas de mejora de su misión 3. Aquí se muestran <b>sin autoría</b> y en orden mezclado. La clase las debate y se acuerda una puntuación y una justificación para cada una; al final puedes sacar un informe.</p>'+
+ '<div class="card"><label class="sim" for="pp">Códigos de partida (los mismos que en el ranking, uno por línea)</label><textarea class="sheet" id="pp" rows="5" placeholder="LP1-..." style="width:100%;box-sizing:border-box">'+esc(saved)+'</textarea><div class="row"><button class="primary" id="gl">Cargar propuestas</button><button id="bk">Volver al ranking</button></div><div id="o0"></div></div><div id="o1"></div>';
+ $('#bk').onclick=function(){try{localStorage.setItem('lp_codes',$('#pp').value)}catch(e){}go('prof')};
+ function show(){
+  var raw=$('#pp').value;try{localStorage.setItem('lp_codes',raw)}catch(e){}
+  var r=propsFrom(raw);TP.items=r.items;TP.bad=r.bad;TP.codes=r.codes;
+  if(!r.items.length){$('#o1').innerHTML='<div class="fb bad">No hay propuestas en estos códigos. '+(r.codes?'Los códigos son válidos, pero ningún alumno/a ha añadido mejoras propias en la misión 3.':'Pega códigos de partida válidos.')+'</div>';return}
+  var h=(r.bad?'<div class="fb bad">'+r.bad+' código(s) no válidos o modificados: se han ignorado.</div>':'')+'<div class="fb">'+r.items.length+' propuesta(s) de '+r.codes+' código(s). Se muestran de forma anónima. <b id="prog"></b></div>';
+  h+=r.items.map(function(it){var c=TP.cons[it.k]||{s:[0,0,0],c:''};
+   return '<div class="card" data-k="'+it.k+'"><b>'+esc(it.id)+'</b><p style="margin:6px 0">'+esc(it.t)+'</p>'+[0,1,2].map(function(k){return critSel(it.k,k,(c.s||[])[k]||0)}).join('')+'<p class="sim" style="margin:8px 0 2px">Media consensuada: <b data-avg="'+it.k+'">'+consF(consAvg(it.k))+'</b></p><label class="sim" for="c_'+it.k+'">Justificación acordada por la clase</label><textarea class="sheet" id="c_'+it.k+'" data-c="'+it.k+'" rows="2" maxlength="400" placeholder="Por qué se le da esta puntuación" style="width:100%;box-sizing:border-box">'+esc(c.c||'')+'</textarea></div>';
+  }).join('');
+  h+='<div class="card"><h3 style="margin-top:0">Informe de puntuaciones</h3><p style="font-size:14px;color:var(--muted);margin:0 0 8px">Reúne las puntuaciones y los comentarios de la clase para que los uses al puntuar cada actividad.</p><label style="display:block;margin:0 0 10px"><input type="checkbox" id="auth" checked> Incluir la autoría en el informe (solo lo ves tú; en pantalla las propuestas siguen anónimas)</label><div class="row"><button class="primary" id="rpdf">Descargar informe en PDF</button><button id="rtxt">Copiar informe en texto</button></div><div id="rmsg"></div><textarea class="sheet" id="rout" rows="8" readonly style="width:100%;box-sizing:border-box;display:none"></textarea></div>';
+  h+='<details class="card"><summary><b>Valoraciones individuales de los equipos (opcional)</b></summary><p style="font-size:14px;color:var(--muted)">Si además quieres que cada equipo valore por su cuenta: copia esta lista, repártela y luego pega aquí los códigos de valoración (LPV…).</p><textarea class="sheet" id="lc" readonly rows="3" style="width:100%;box-sizing:border-box">'+esc(tok('LPL',r.items.map(function(it){return [it.id,it.nick,it.t]})))+'</textarea><div class="row"><button id="cpl">Copiar lista</button></div><div id="cfb"></div><textarea class="sheet" id="vv" rows="4" placeholder="LPV-..." style="width:100%;box-sizing:border-box"></textarea><div class="row"><button class="primary" id="calc">Calcular resultado</button></div><div id="o2"></div></details>';
+  $('#o1').innerHTML=h;
+  var upd=function(){var n=TP.items.filter(function(it){return consAvg(it.k)!==null}).length;$('#prog').textContent='Valoradas: '+n+' de '+TP.items.length+'.'};
+  upd();
+  $('#o1').querySelectorAll('select[data-id]').forEach(function(sel){sel.onchange=function(){var k=sel.dataset.id,o=TP.cons[k]=TP.cons[k]||{s:[0,0,0],c:''};o.s=o.s||[0,0,0];o.s[+sel.dataset.k]=+sel.value;consSave();var a=$('#o1').querySelector('[data-avg="'+k+'"]');if(a)a.textContent=consF(consAvg(k));upd()}});
+  $('#o1').querySelectorAll('textarea[data-c]').forEach(function(ta){ta.oninput=function(){var k=ta.dataset.c,o=TP.cons[k]=TP.cons[k]||{s:[0,0,0],c:''};o.c=ta.value;consSave()}});
+  $('#rpdf').onclick=function(){pdfSave(pdfCons($('#auth').checked),'LineaParada_puesta_en_comun.pdf','#rmsg')};
+  $('#rtxt').onclick=function(){var o=$('#rout');o.value=consText($('#auth').checked);o.style.display='';copyEl(o,$('#rmsg'))};
+  $('#cpl').onclick=function(){copyEl($('#lc'),$('#cfb'))};
+  $('#calc').onclick=function(){
+   var list=TP.items.map(function(it){return [it.id,it.nick,it.t,it.k]});
+   var votes={},self={},bad2=0,seen={};
+   $('#vv').value.split(/\s+/).filter(Boolean).forEach(function(c){var d=untok('LPV',c);if(!d||!d.r){bad2++;return}seen[d.n.toLowerCase()]=1;list.forEach(function(x){var q=d.r[x[0]];if(!q)return;if(String(x[1]).toLowerCase()===d.n.toLowerCase())self[x[0]]=q;else(votes[x[0]]=votes[x[0]]||[]).push(q)})});
+   var avg=function(a){if(!a||!a.length)return null;return a.reduce(function(s,q){return s+(q[0]+q[1]+q[2])/3},0)/a.length};
+   var rows=list.map(function(x){var cl=avg(votes[x[0]]),au=self[x[0]]?avg([self[x[0]]]):null,cs=consAvg(x[3]);var parts=[cl,cs].filter(function(v){return v!==null});return {id:x[0],nick:x[1],t:x[2],cl:cl,au:au,cs:cs,fin:parts.length?parts.reduce(function(a,b){return a+b},0)/parts.length:null,n:(votes[x[0]]||[]).length}}).sort(function(a,b){return (b.fin||0)-(a.fin||0)});
+   $('#o2').innerHTML=(bad2?'<div class="fb bad">'+bad2+' código(s) de valoración no válidos: se han ignorado.</div>':'')+'<div class="fb">Equipos que han valorado: '+Object.keys(seen).length+'. Las medias son de 1 a 4. «Final» es la media entre la clase (sin la autoría) y la puntuación consensuada; si falta una, solo la otra.</div><div class="card tbl"><table><tr><th>#</th><th>Propuesta</th><th>Autoría</th><th class="n">Equipos</th><th class="n">Autovaloración</th><th class="n">Consenso</th><th class="n">Final</th></tr>'+rows.map(function(q,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(q.id)+' · '+esc(q.t)+'</td><td>'+esc(q.nick)+'</td><td class="n">'+consF(q.cl)+(q.n?' ('+q.n+')':'')+'</td><td class="n">'+consF(q.au)+'</td><td class="n">'+consF(q.cs)+'</td><td class="n"><b>'+consF(q.fin)+'</b></td></tr>'}).join('')+'</table></div>';
+  };
+ }
+ $('#gl').onclick=show;
+ if(saved.trim())show();
 }
 var M2CASE={
  cas:{q:M2Q[0],cur:'sustituir el casquillo guía y realinear motor y transmisión',
@@ -2539,6 +2829,7 @@ function vFinal(){
  '<h3>Misión 2 · Cerrar el caso de raíz</h3>'+(Object.keys(S.pal).length?(S.m2Q&&S.rq.every(Boolean)?'<div class="fb good"><b>Misión 2 completada: '+S.m2pts+' de 15.</b> Recuperas '+S.sc.rec+' puntos del ranking. Tu lección aprendida está en el informe.</div>':'<div class="card"><p style="margin:0 0 8px">Elegiste soluciones paliativas y la EF-07 vuelve a parar tres semanas después. Rediagnostica con los datos de hoy y decide la intervención que cierre el caso de raíz: hasta 15 puntos extra y hasta 6 que se suman a tu puntuación. Tu partida queda guardada en este navegador: puedes hacerla ahora o al empezar la siguiente sesión.</p><button class="primary" id="m2">Empezar la misión 2</button></div>'):'<div class="fb good"><b>Misión 2 no necesaria.</b> Tus soluciones fueron curativas y no hay reincidencia que investigar.</div>')+
  '<h3>Misión 3 · Mejoras de la instalación</h3>'+(S.m3done?'<div class="fb good"><b>Misión 3 presentada: '+S.m3pts+' de 10.</b> Tu justificación está en el informe.</div><div class="row"><button id="m3">Revisar el plan</button></div>':'<div class="card"><p style="margin:0 0 8px">Con un presupuesto de '+BUDGET+' €, propón mejoras que eviten otra avería o la detecten antes, y justifícalas por escrito (hasta 10 puntos extra, fuera del ranking).</p><button class="primary" id="m3">Empezar la misión 3</button></div>')+
  '<h3>Informe de causa raíz y orden de trabajo</h3><p style="font-size:14px;color:var(--muted)">El juego ha redactado un borrador con tus decisiones. Edítalo, complétalo con tus palabras y entrégalo: es el documento que se evalúa con la rúbrica.</p><textarea class="sheet" id="inf" rows="24" style="width:100%;box-sizing:border-box">'+esc(buildInforme(t))+'</textarea><div class="row"><button class="primary" id="cpi">Copiar informe</button></div><div id="ifb"></div>'+
+ '<div class="card"><h3 style="margin-top:0">Exportar a PDF</h3><p style="font-size:14px;color:var(--muted);margin:0 0 8px">Descarga la partida completa o la hoja para evaluarla (datos del juego, rúbrica, coevaluación e informe). Se generan en tu dispositivo, sin internet. Si editas el informe, hazlo antes de descargar.</p><div class="row"><button class="primary" id="pdfp">PDF de la partida</button><button id="pdfe">PDF para evaluar</button></div><div id="pdfm"></div></div>'+
  '<h3>Tu recorrido para compartir</h3><textarea class="sheet" id="rec" rows="6" readonly style="width:100%;box-sizing:border-box">'+esc(buildRecorrido(t))+'</textarea><div class="row"><button id="cpr">Copiar recorrido</button></div>'+
  '<div class="card"><h3>Para la puesta en común entre grupos</h3><ul style="margin:0;padding-left:18px;font-size:15px"><li>¿Por qué estación empezó cada grupo y qué descubrió primero?</li><li>¿Qué callejones y soluciones paliativas aparecieron y por qué resultaron tentadores?</li><li>¿Qué dato fue decisivo para llegar a la causa raíz y qué grupo lo encontró antes?</li></ul></div>'+schem('all')+
  '<div class="card tbl"><table><tr><th>Apartado</th><th class="n">Puntos</th><th class="n">Máximo</th></tr>'+
@@ -2563,6 +2854,8 @@ function vFinal(){
  var m2b=$('#m2');if(m2b)m2b.onclick=function(){go('m2')};var m3b=$('#m3');if(m3b)m3b.onclick=function(){go('m3')};
  var cp=function(id,fbid,txt){var el=$(id);return function(){var okf=function(){$(fbid).innerHTML='<div class="fb good">Copiado.</div>'};var bad=function(){el.select();$(fbid).innerHTML='<div class="fb">Selecciona el texto y cópialo con Ctrl+C.</div>'};try{navigator.clipboard.writeText(el.value).then(okf,bad)}catch(e){bad()}}};
  $('#cpi').onclick=cp('#inf','#ifb');
+ $('#pdfp').onclick=function(){pdfSave(pdfPartida(),'LineaParada_partida_'+pdfSlug(PROFILE.nick)+'.pdf','#pdfm')};
+ $('#pdfe').onclick=function(){pdfSave(pdfEval(),'LineaParada_evaluacion_'+pdfSlug(PROFILE.nick)+'.pdf','#pdfm')};
  $('#cpr').onclick=function(){var el=$('#rec');try{navigator.clipboard.writeText(el.value)}catch(e){el.select()}this.textContent='Recorrido copiado'};
 }
 $('#svb').onclick=openSave;
