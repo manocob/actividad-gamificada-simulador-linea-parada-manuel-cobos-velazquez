@@ -2592,6 +2592,7 @@ function consRows(){
 function consText(withAuthor){
  var rows=consRows(),L=['PUESTA EN COMÚN · INFORME DE PUNTUACIONES','Propuestas de mejora de la instalación EF-07 · valoración consensuada por la clase','Escala: 1 insuficiente · 2 mejorable · 3 adecuado · 4 excelente. Criterios: eficacia, viabilidad y claridad.',''];
  L.push('RESUMEN POR CRITERIOS');consCrit().forEach(function(c){L.push('  '+c.name+': media '+(c.avg===null?'-':consF(c.avg))+(c.best.length?' · mejor valoradas: '+c.best.join(', ')+' ('+c.mx+')':''))});L.push('');
+ if(withAuthor){L.push('NOTA SUGERIDA POR ALUMNO/A');consStudents().forEach(function(q){L.push('  '+q.nick+': '+(q.nota===null?'-':consF(q.nota))+'/10 (media '+consF(q.avg)+', '+q.n+' de '+q.tot+' propuestas valoradas)')});L.push('  '+CONS_NOTA);L.push('')}
  rows.slice().sort(function(a,b){return (b.avg||0)-(a.avg||0)}).forEach(function(r){
   L.push(r.it.id+' · media '+consF(r.avg)+(withAuthor?' · autoría: '+r.it.nick:''));
   L.push('  '+r.it.t);
@@ -2610,6 +2611,12 @@ function consCrit(){
   return {name:name,avg:sum/rows.length,best:rows.filter(function(r){return r.s[k]===mx}).map(function(r){return r.it.id}),mx:mx,n:rows.length};
  });
 }
+function consStudents(){
+ var g={},order=[];
+ consRows().forEach(function(r){var k=String(r.it.nick).toLowerCase();if(!g[k]){g[k]={nick:r.it.nick,tot:0,vals:[]};order.push(k)}g[k].tot++;if(r.avg!==null)g[k].vals.push(r.avg)});
+ return order.map(function(k){var o=g[k],m=o.vals.length?o.vals.reduce(function(a,b){return a+b},0)/o.vals.length:null;return {nick:o.nick,tot:o.tot,n:o.vals.length,avg:m,nota:m===null?null:Math.round((m-1)/3*100)/10}}).sort(function(a,b){return (b.nota||0)-(a.nota||0)});
+}
+var CONS_NOTA='Orientativa: media de las propuestas valoradas de cada alumno/a, pasada de la escala 1-4 a 0-10 con (media - 1) / 3 x 10. La nota final la decides tú.';
 function pdfRanking(){
  var rows=RK.rows,d=pdfNew('Ranking de clase');
  d.band('Línea parada · Ranking de clase','Resultados de la clase por puntos y tiempo de paro');
@@ -2635,6 +2642,11 @@ function pdfCons(withAuthor){
  var cc=consCrit();
  d.h2('Resumen por criterios');
  d.table(['Criterio','Media de la clase','Mejor valoradas'],cc.map(function(c){return [{t:c.name,b:true},c.avg===null?'-':consF(c.avg),c.best.length?c.best.join(', ')+' ('+c.mx+')':'-']}),[.30,.30,.40],['l','c','l']);
+ if(withAuthor){
+  d.h2('Nota sugerida por alumno/a');
+  d.table(['Alumno/a','Propuestas valoradas','Media (1-4)','Nota sugerida (/10)'],consStudents().map(function(q){return [{t:q.nick,b:true},q.n+' de '+q.tot,consF(q.avg),{t:q.nota===null?'-':consF(q.nota),b:true}]}),[.34,.22,.20,.24],['l','c','c','c']);
+  d.p(CONS_NOTA,{sz:8.5,rgb:[90,98,106]});
+ }
  d.h2('Detalle y justificación de cada puntuación');
  sorted.forEach(function(r){
   d.p(r.it.id+' · media '+consF(r.avg)+(withAuthor?' · autoría: '+r.it.nick:''),{b:true,after:1});
